@@ -8,4 +8,4 @@ python-dotenv==1.0.0
 psycopg2-binary==2.9.9
 fuzzywuzzy==0.18.0
 python-Levenshtein==0.25.0
-telegram-inline-calendar==0.2.1
+python-telegram-calendar==1.1.0

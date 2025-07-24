@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
-from telegram_inline_calendar import TGCalendar
+from python_telegram_calendar import DetailedTelegramCalendar
 import json
 
 def load_texts(lang):
@@ -11,7 +11,7 @@ async def show_calendar(update: Update, context: CallbackContext):
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
 
-    calendar, step = TGCalendar().build()
+    calendar, step = DetailedTelegramCalendar().build()
     await update.message.reply_text(
         text=texts["calendar_select_date"],
         reply_markup=calendar
@@ -21,7 +21,7 @@ async def calendar_callback(update: Update, context: CallbackContext):
     query = update.callback_query
     await query.answer()
 
-    result, key, step = TGCalendar().process(query.data)
+    result, key, step = DetailedTelegramCalendar().process(query.data)
 
     if not result and key:
         await context.bot.edit_message_text(
