@@ -8,7 +8,12 @@ from handlers import (
     question_handler,
     weather_handler,
     apps_guide_handler,
-    # Placeholder handlers will be replaced as features are built
+    menu_handler,
+    search_handler,
+    file_handler,
+    gamification_handler,
+    location_handler,
+    live_chat_handler,
 )
 
 def main() -> None:
@@ -19,15 +24,29 @@ def main() -> None:
     app.add_handler(cmd_start.start_handler)
     app.add_handler(cmd_start.lang_handler)
 
-    # --- Feature Handlers ---
-    # Connect existing handlers to their new callback_data
-    app.add_handler(isee_handler.isee_conv_handler)
+    # --- Menu Placeholder Handlers ---
+    app.add_handler(cmd_start.menu_placeholder_handler)
 
-    # This handler was specifically requested and is now connected to a button
+    # --- Feature Handlers ---
+    app.add_handler(isee_handler.isee_conv_handler)
     app.add_handler(apps_guide_handler.apps_guide_handler)
 
-    # Note: Other handlers like consult, file, gamification, location, live_chat
-    # are not connected to the main menu yet and will be integrated in the next steps.
+    # The following handlers are still command-based and will be connected to buttons later
+    app.add_handler(profile_handler.profile_conv_handler)
+    app.add_handler(question_handler.question_conv_handler)
+    app.add_handler(weather_handler.weather_handler)
+    app.add_handler(consult_handler.consult_conv_handler)
+    app.add_handler(file_handler.pdf_handler)
+    app.add_handler(file_handler.video_handler)
+    app.add_handler(gamification_handler.gamification_profile_handler)
+    app.add_handler(location_handler.location_handler)
+    app.add_handler(live_chat_handler.start_chat_handler)
+    app.add_handler(live_chat_handler.end_chat_handler)
+    app.add_handler(live_chat_handler.user_message_handler)
+    app.add_handler(live_chat_handler.admin_message_handler)
+    app.add_handler(search_handler.search_handler)
+    app.add_handler(menu_handler.menu_handler)
+
 
     # Start the Bot
     app.run_webhook(
