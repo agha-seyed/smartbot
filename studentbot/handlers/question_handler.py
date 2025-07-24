@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ConversationHandler, CallbackContext, CommandHandler, MessageHandler, filters
 from utils.gsheets import save_to_gsheets
 from config import ADMIN_CHAT_ID, QUESTIONS_SHEET_NAME
+from utils.text_formatter import sanitize_markdown
 import json
 
 def load_texts(lang):
@@ -14,7 +15,7 @@ QUESTION = range(1)
 async def start_question(update: Update, context: CallbackContext):
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    await update.message.reply_text(texts["question_intro"])
+    await update.message.reply_text(sanitize_markdown(texts["question_intro"]))
     return QUESTION
 
 async def get_question(update: Update, context: CallbackContext):
@@ -33,7 +34,7 @@ async def get_question(update: Update, context: CallbackContext):
         text=f"New question from user {update.effective_user.id}:\n\n{update.message.text}"
     )
 
-    await update.message.reply_text(texts["question_submitted"])
+    await update.message.reply_text(sanitize_markdown(texts["question_submitted"]))
     return ConversationHandler.END
 
 async def cancel(update: Update, context: CallbackContext):

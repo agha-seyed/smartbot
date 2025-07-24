@@ -1,12 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ConversationHandler,
-    CallbackContext,
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,  # ✅ این خط اضافه شد
-    filters
-)
+from telegram.ext import ConversationHandler, CallbackContext, CommandHandler, MessageHandler, filters, CallbackQueryHandler
+from utils.text_formatter import sanitize_markdown
 import json
 
 def load_texts(lang):
@@ -19,15 +13,15 @@ FAMILY_MEMBERS, ANNUAL_INCOME, PROPERTY_OWNERSHIP, PROPERTY_SIZE = range(4)
 async def start_isee(update: Update, context: CallbackContext):
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    await update.message.reply_text(texts["isee_intro"])
-    await update.message.reply_text(texts["isee_family_members"])
+    await update.message.reply_text(sanitize_markdown(texts["isee_intro"]))
+    await update.message.reply_text(sanitize_markdown(texts["isee_family_members"]))
     return FAMILY_MEMBERS
 
 async def family_members(update: Update, context: CallbackContext):
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     context.user_data['isee'] = {'family_members': int(update.message.text)}
-    await update.message.reply_text(texts["isee_annual_income"])
+    await update.message.reply_text(sanitize_markdown(texts["isee_annual_income"]))
     return ANNUAL_INCOME
 
 async def annual_income(update: Update, context: CallbackContext):
@@ -39,7 +33,7 @@ async def annual_income(update: Update, context: CallbackContext):
         [InlineKeyboardButton(texts["property_tenant"], callback_data='tenant')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(texts["isee_property_ownership"], reply_markup=reply_markup)
+    await update.message.reply_text(sanitize_markdown(texts["isee_property_ownership"]), reply_markup=reply_markup)
     return PROPERTY_OWNERSHIP
 
 async def property_ownership(update: Update, context: CallbackContext):
@@ -49,7 +43,7 @@ async def property_ownership(update: Update, context: CallbackContext):
     texts = load_texts(lang)
     context.user_data['isee']['property_ownership'] = query.data
     if query.data == 'owner':
-        await query.edit_message_text(text=texts["isee_property_size"])
+        await query.edit_message_text(text=sanitize_markdown(texts["isee_property_size"]))
         return PROPERTY_SIZE
     else:
         await calculate_and_show_isee(update, context)
@@ -59,6 +53,7 @@ async def property_size(update: Update, context: CallbackContext):
     context.user_data['isee']['property_size'] = float(update.message.text)
     await calculate_and_show_isee(update, context)
     return ConversationHandler.END
+
 
 async def calculate_and_show_isee(update, context):
     lang = context.user_data.get("lang", "fa")
@@ -103,8 +98,10 @@ async def calculate_and_show_isee(update, context):
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=result_text
+        text=sanitize_markdown(result_text),
+        parse_mode="MarkdownV2"
     )
+
 
 async def cancel(update: Update, context: CallbackContext):
     lang = context.user_data.get("lang", "fa")
