@@ -53,27 +53,23 @@ async def show_main_menu(update: Update, context: CallbackContext):
     texts = all_texts[lang_code]
     keyboard = [
         [
-            InlineKeyboardButton(texts["profile_button"], callback_data='profile'),
-            InlineKeyboardButton(texts["isee_button"], callback_data='isee')
+            InlineKeyboardButton(texts["scholarships_button"], callback_data='scholarships'),
+            InlineKeyboardButton(texts["migration_steps_button"], callback_data='migration_steps')
         ],
         [
-            InlineKeyboardButton(texts["consult_button"], callback_data='consult'),
-            InlineKeyboardButton(texts["question_button"], callback_data='question')
+            InlineKeyboardButton(texts["housing_button"], callback_data='housing'),
+            InlineKeyboardButton(texts["student_life_button"], callback_data='student_life')
         ],
         [
-            InlineKeyboardButton(texts["weather_button"], callback_data='weather'),
-            InlineKeyboardButton(texts["apps_guide_button"], callback_data='apps_guide')
+            InlineKeyboardButton(texts["universities_button"], callback_data='universities'),
+            InlineKeyboardButton(texts["tools_button"], callback_data='tools')
         ],
         [
-            InlineKeyboardButton(texts["search_button"], callback_data='search'),
-            InlineKeyboardButton(texts["file_button"], callback_data='file')
+            InlineKeyboardButton(texts["language_courses_button"], callback_data='language_courses'),
+            InlineKeyboardButton(texts["university_news_button"], callback_data='university_news')
         ],
         [
-            InlineKeyboardButton(texts["gamification_button"], callback_data='gamification'),
-            InlineKeyboardButton(texts["location_button"], callback_data='location')
-        ],
-        [
-            InlineKeyboardButton(texts["live_chat_button"], callback_data='live_chat')
+            InlineKeyboardButton(texts["user_feedback_button"], callback_data='user_feedback')
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)

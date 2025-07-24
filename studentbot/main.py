@@ -15,6 +15,7 @@ from handlers import (
     location_handler,
     live_chat_handler,
     admin_handler,
+    submenu_handler,
 )
 
 def main() -> None:
@@ -51,6 +52,9 @@ def main() -> None:
     app.add_handler(admin_handler.poll_handler)
 
     for handler in admin_handler.admin_menu_handlers:
+        app.add_handler(handler)
+
+    for handler in submenu_handler.submenu_handlers:
         app.add_handler(handler)
 
 
