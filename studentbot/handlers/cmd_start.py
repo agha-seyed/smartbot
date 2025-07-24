@@ -8,7 +8,7 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-from . import profile_handler  # Import the profile handler
+from . import profile_handler, gamification_handler
 import json
 
 # --- Load all language texts ---
@@ -99,9 +99,13 @@ async def language_select_and_start_registration(update: Update, context: Callba
     # Start the profile flow
     return await profile_handler.start_profile_flow(update, context)
 
+from utils.db import save_user
+
 async def registration_complete(update: Update, context: CallbackContext):
     """Called after the last piece of profile info is provided."""
     await profile_handler.country(update, context) # Process the final input
+    save_user(context.user_data['profile'])
+    gamification_handler.add_points(update.effective_user.id, 10)
     await show_main_menu(update, context)
     return ConversationHandler.END
 

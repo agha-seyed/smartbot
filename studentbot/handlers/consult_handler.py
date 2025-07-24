@@ -97,7 +97,7 @@ async def save_consultation_data(update: Update, context: CallbackContext):
     consult_data = context.user_data["consult"]
 
     # Save data
-    # save_consultation(consult_data)  # Uncomment when db is ready
+    save_consultation(consult_data)  # Uncomment when db is ready
     # cache_session(update.effective_user.id, consult_data)  # Uncomment when redis is ready
     save_to_gsheets(consult_data, sheet_name="Consultations")
 
@@ -114,12 +114,12 @@ async def save_consultation_data(update: Update, context: CallbackContext):
         [InlineKeyboardButton(texts["respond"], callback_data=f"respond_{update.effective_user.id}"),
          InlineKeyboardButton(texts["archive"], callback_data=f"archive_{update.effective_user.id}")]
     ]
-    # await context.bot.send_message( # Uncomment when admin chat id is set
-    #     chat_id=ADMIN_CHAT_ID,
-    #     text=sanitize_markdown(admin_msg),
-    #     parse_mode="MarkdownV2",
-    #     reply_markup=InlineKeyboardMarkup(keyboard)
-    # )
+    await context.bot.send_message( # Uncomment when admin chat id is set
+        chat_id=ADMIN_CHAT_ID,
+        text=sanitize_markdown(admin_msg),
+        parse_mode="MarkdownV2",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
     # Confirm to user
     user_msg = texts["consult_confirmation"].format(

@@ -7,22 +7,22 @@ def load_texts(lang):
     with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
         return json.load(f)
 
+def load_files():
+    with open('studentbot/files.json', 'r', encoding='utf-8') as f:
+        return json.load(f)
+
 async def show_file_menu(update: Update, context: CallbackContext):
     """Shows the file menu."""
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-
-    # For now, we will just list the files in the assets/pdfs and assets/videos directories.
-    # This can be improved later to use a more structured approach.
-    pdf_files = [f for f in os.listdir('assets/pdfs') if f.endswith('.pdf')]
-    video_files = [f for f in os.listdir('assets/videos') if f.endswith('.mp4')]
+    files = load_files()
 
     keyboard = []
-    for pdf_file in pdf_files:
+    for pdf_file in files.get("pdfs", []):
         keyboard.append([InlineKeyboardButton(pdf_file, callback_data=f"file_pdf_{pdf_file}")])
-    for video_file in video_files:
+    for video_file in files.get("videos", []):
         keyboard.append([InlineKeyboardButton(video_file, callback_data=f"file_video_{video_file}")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
