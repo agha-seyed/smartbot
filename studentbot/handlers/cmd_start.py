@@ -6,6 +6,8 @@ def load_texts(lang):
     with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
         return json.load(f)
 
+from telegram.ext import CommandHandler
+
 async def start(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("فارسی", callback_data='lang_fa')],
@@ -14,6 +16,8 @@ async def start(update: Update, context: CallbackContext):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("لطفا زبان خود را انتخاب کنید / Please select your language / Seleziona la tua lingua:", reply_markup=reply_markup)
+
+start_handler = CommandHandler("start", start)
 
 async def language_select(update: Update, context: CallbackContext):
     query = update.callback_query

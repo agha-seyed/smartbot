@@ -1,4 +1,4 @@
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application
 from config import TELEGRAM_TOKEN, BASE_URL, WEBHOOK_SECRET, PORT
 from handlers import (
     cmd_start,
@@ -15,11 +15,13 @@ from handlers import (
     live_chat_handler,
 )
 
-async def main():
+def main() -> None:
+    """Run the bot."""
+    # Create the Application and pass it your bot's token.
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # Register all handlers
-    app.add_handler(CommandHandler("start", cmd_start.start))
+    # on different commands - answer in Telegram
+    app.add_handler(cmd_start.start_handler)
     app.add_handler(cmd_start.lang_handler)
     app.add_handler(profile_handler.profile_conv_handler)
     app.add_handler(isee_handler.isee_conv_handler)
@@ -37,15 +39,14 @@ async def main():
     app.add_handler(live_chat_handler.user_message_handler)
     app.add_handler(live_chat_handler.admin_message_handler)
 
-    # Run bot with webhook
-    await app.run_webhook(
+    # Start the Bot
+    app.run_webhook(
         listen="0.0.0.0",
         port=int(PORT),
-        url_path=WEBHOOK_SECRET,
+        secret_token=WEBHOOK_SECRET,
         webhook_url=f"{BASE_URL}/{WEBHOOK_SECRET}",
-        secret_token=WEBHOOK_SECRET
+        url_path=WEBHOOK_SECRET,
     )
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
