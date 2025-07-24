@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ConversationHandler, CallbackContext, CommandHandler, MessageHandler, filters
 from utils.gsheets import save_to_gsheets
-from config import ADMIN_CHAT_ID
+from config import ADMIN_CHAT_ID, QUESTIONS_SHEET_NAME
 import json
 
 def load_texts(lang):
@@ -26,7 +26,7 @@ async def get_question(update: Update, context: CallbackContext):
         "question": update.message.text
     }
 
-    save_to_gsheets(question_data, sheet_name="Questions")
+    save_to_gsheets(question_data, sheet_name=QUESTIONS_SHEET_NAME)
 
     await context.bot.send_message(
         chat_id=ADMIN_CHAT_ID,

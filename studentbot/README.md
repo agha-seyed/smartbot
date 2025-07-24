@@ -47,7 +47,7 @@ This bot is designed to be deployed on Render.
 
 1. Create a new Web Service on Render.
 2. Connect your GitHub repository.
-3. Set the environment to Python 3.10.
+3. Set the environment to Python 3.11.9.
 4. Add your environment variables from the `.env` file.
 5. Set the build command to `pip install -r requirements.txt`.
 6. Set the start command to `python main.py`.

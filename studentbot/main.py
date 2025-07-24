@@ -1,5 +1,5 @@
 from telegram.ext import Application, CommandHandler, ConversationHandler
-from config import TELEGRAM_TOKEN, BASE_URL, WEBHOOK_SECRET
+from config import TELEGRAM_TOKEN, BASE_URL, WEBHOOK_SECRET, PORT
 from handlers import cmd_start, profile_handler, isee_handler, consult_handler, question_handler, weather_handler, menu_handler, search_handler, file_handler, gamification_handler, calendar_handler, location_handler, live_chat_handler
 
 async def main():
@@ -32,7 +32,7 @@ async def main():
     await app.start()
     await app.updater.start_webhook(
         listen="0.0.0.0",
-        port=8443,
+        port=int(PORT),
         url_path=TELEGRAM_TOKEN,
         webhook_url=f"{BASE_URL}/{TELEGRAM_TOKEN}",
         secret_token=WEBHOOK_SECRET
