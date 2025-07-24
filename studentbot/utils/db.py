@@ -63,3 +63,7 @@ def save_consultation(consultation_data):
     db.commit()
     db.refresh(db_consultation)
     return db_consultation
+
+def get_all_users():
+    db = next(get_db())
+    return db.query(User).all()

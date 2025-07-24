@@ -14,6 +14,13 @@ from . import (
     live_chat_handler,
 )
 
+def feature_with_points(handler, points=5):
+    """Wrapper to add points for using a feature."""
+    async def wrapper(update: Update, context: CallbackContext):
+        gamification_handler.add_points(update.effective_user.id, points)
+        await handler(update, context)
+    return wrapper
+
 async def profile_button(update: Update, context: CallbackContext):
     """Handles the 'Profile' button press."""
     await profile_handler.show_profile(update, context)
@@ -60,15 +67,15 @@ async def live_chat_button(update: Update, context: CallbackContext):
 
 # --- Callback Query Handlers ---
 menu_handlers = [
-    CallbackQueryHandler(profile_button, pattern='^profile$'),
-    CallbackQueryHandler(isee_button, pattern='^isee$'),
-    CallbackQueryHandler(consult_button, pattern='^consult$'),
-    CallbackQueryHandler(question_button, pattern='^question$'),
-    CallbackQueryHandler(weather_button, pattern='^weather$'),
-    CallbackQueryHandler(apps_guide_button, pattern='^apps_guide$'),
-    CallbackQueryHandler(search_button, pattern='^search$'),
-    CallbackQueryHandler(file_button, pattern='^file$'),
-    CallbackQueryHandler(gamification_button, pattern='^gamification$'),
-    CallbackQueryHandler(location_button, pattern='^location$'),
-    CallbackQueryHandler(live_chat_button, pattern='^live_chat$'),
+    CallbackQueryHandler(feature_with_points(profile_button), pattern='^profile$'),
+    CallbackQueryHandler(feature_with_points(isee_button), pattern='^isee$'),
+    CallbackQueryHandler(feature_with_points(consult_button), pattern='^consult$'),
+    CallbackQueryHandler(feature_with_points(question_button), pattern='^question$'),
+    CallbackQueryHandler(feature_with_points(weather_button), pattern='^weather$'),
+    CallbackQueryHandler(feature_with_points(apps_guide_button), pattern='^apps_guide$'),
+    CallbackQueryHandler(feature_with_points(search_button), pattern='^search$'),
+    CallbackQueryHandler(feature_with_points(file_button), pattern='^file$'),
+    CallbackQueryHandler(feature_with_points(gamification_button, points=0), pattern='^gamification$'), # No points for checking points
+    CallbackQueryHandler(feature_with_points(location_button), pattern='^location$'),
+    CallbackQueryHandler(feature_with_points(live_chat_button), pattern='^live_chat$'),
 ]

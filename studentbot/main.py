@@ -14,6 +14,7 @@ from handlers import (
     gamification_handler,
     location_handler,
     live_chat_handler,
+    admin_handler,
 )
 
 def main() -> None:
@@ -41,6 +42,10 @@ def main() -> None:
     app.add_handler(live_chat_handler.end_chat_handler)
     app.add_handler(live_chat_handler.user_message_handler)
     app.add_handler(live_chat_handler.admin_message_handler)
+
+    app.add_handler(admin_handler.add_file_handler)
+    app.add_handler(admin_handler.remove_file_handler)
+    app.add_handler(admin_handler.broadcast_handler)
 
 
     # Start the Bot
