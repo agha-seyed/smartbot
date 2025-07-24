@@ -7,7 +7,7 @@ import json
 def load_all_texts():
     texts = {}
     for lang in ["en", "fa", "it"]:
-        with open(f'studentbot/lang/{lang}.json', 'r', encoding='utf-8') as f:
+        with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
             texts[lang] = json.load(f)
     return texts
 
