@@ -1,5 +1,12 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ConversationHandler, CallbackContext, CommandHandler, MessageHandler, filters
+from telegram.ext import (
+    ConversationHandler,
+    CallbackContext,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,  # ✅ این خط اضافه شد
+    filters
+)
 import json
 
 def load_texts(lang):
@@ -53,7 +60,6 @@ async def property_size(update: Update, context: CallbackContext):
     await calculate_and_show_isee(update, context)
     return ConversationHandler.END
 
-
 async def calculate_and_show_isee(update, context):
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
@@ -99,7 +105,6 @@ async def calculate_and_show_isee(update, context):
         chat_id=update.effective_chat.id,
         text=result_text
     )
-
 
 async def cancel(update: Update, context: CallbackContext):
     lang = context.user_data.get("lang", "fa")
