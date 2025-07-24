@@ -20,19 +20,14 @@ def main() -> None:
     """Run the bot."""
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # --- Core Handlers ---
-    app.add_handler(cmd_start.start_handler)
-    app.add_handler(cmd_start.lang_handler)
-
-    # --- Menu Placeholder Handlers ---
-    app.add_handler(cmd_start.menu_placeholder_handler)
+    # --- Core Onboarding Handler ---
+    app.add_handler(cmd_start.onboarding_conv_handler)
 
     # --- Feature Handlers ---
     app.add_handler(isee_handler.isee_conv_handler)
     app.add_handler(apps_guide_handler.apps_guide_handler)
 
     # The following handlers are still command-based and will be connected to buttons later
-    app.add_handler(profile_handler.profile_conv_handler)
     app.add_handler(question_handler.question_conv_handler)
     app.add_handler(weather_handler.weather_handler)
     app.add_handler(consult_handler.consult_conv_handler)
