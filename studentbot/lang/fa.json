@@ -49,5 +49,14 @@
     "chat_started": "شما اکنون در حالت چت زنده با ادمین هستید. برای پایان چت، از دستور /endchat استفاده کنید.",
     "chat_ended": "چت زنده با ادمین به پایان رسید.",
     "question_intro": "لطفا سوال خود را بنویسید:",
-    "question_submitted": "سوال شما با موفقیت ثبت شد و برای ادمین ارسال شد."
+    "question_submitted": "سوال شما با موفقیت ثبت شد و برای ادمین ارسال شد.",
+    "menu_scholarships": "بورسیه‌ها",
+    "menu_migration": "مراحل مهاجرت",
+    "menu_housing": "مسکن در پروجا",
+    "menu_student_life": "زندگی دانشجویی",
+    "menu_universities": "دانشگاه‌ها",
+    "menu_isee_calculator": "محاسبه‌گر ISEE",
+    "menu_weather": "آب‌وهوای پروجا",
+    "menu_ask_question": "فرم ارسال سؤال",
+    "menu_tools": "ابزارها"
 }

@@ -49,5 +49,14 @@
     "chat_started": "Sei ora in modalità chat dal vivo con l'amministratore. Per terminare la chat, usa il comando /endchat.",
     "chat_ended": "La chat dal vivo con l'amministratore è terminata.",
     "question_intro": "Scrivi la tua domanda:",
-    "question_submitted": "La tua domanda è stata inviata con successo all'amministratore."
+    "question_submitted": "La tua domanda è stata inviata con successo all'amministratore.",
+    "menu_scholarships": "Borse di studio",
+    "menu_migration": "Fasi di migrazione",
+    "menu_housing": "Alloggi a Perugia",
+    "menu_student_life": "Vita studentesca",
+    "menu_universities": "Università",
+    "menu_isee_calculator": "Calcolatore ISEE",
+    "menu_weather": "Meteo a Perugia",
+    "menu_ask_question": "Fai una domanda",
+    "menu_tools": "Strumenti"
 }

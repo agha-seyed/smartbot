@@ -13,6 +13,7 @@ from handlers import (
     gamification_handler,
     location_handler,
     live_chat_handler,
+    apps_guide_handler,
 )
 
 def main() -> None:
@@ -23,6 +24,7 @@ def main() -> None:
     # on different commands - answer in Telegram
     app.add_handler(cmd_start.start_handler)
     app.add_handler(cmd_start.lang_handler)
+    app.add_handler(cmd_start.placeholder_handler)
     app.add_handler(profile_handler.profile_conv_handler)
     app.add_handler(isee_handler.isee_conv_handler)
     app.add_handler(consult_handler.consult_conv_handler)
@@ -38,6 +40,7 @@ def main() -> None:
     app.add_handler(live_chat_handler.end_chat_handler)
     app.add_handler(live_chat_handler.user_message_handler)
     app.add_handler(live_chat_handler.admin_message_handler)
+    app.add_handler(apps_guide_handler.apps_guide_handler)
 
     # Start the Bot
     app.run_webhook(

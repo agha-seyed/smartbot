@@ -49,5 +49,14 @@
     "chat_started": "You are now in live chat mode with the admin. To end the chat, use the /endchat command.",
     "chat_ended": "Live chat with the admin has ended.",
     "question_intro": "Please write your question:",
-    "question_submitted": "Your question has been successfully submitted and sent to the admin."
+    "question_submitted": "Your question has been successfully submitted and sent to the admin.",
+    "menu_scholarships": "Scholarships",
+    "menu_migration": "Migration Steps",
+    "menu_housing": "Housing in Perugia",
+    "menu_student_life": "Student Life",
+    "menu_universities": "Universities",
+    "menu_isee_calculator": "ISEE Calculator",
+    "menu_weather": "Perugia Weather",
+    "menu_ask_question": "Ask a Question",
+    "menu_tools": "Tools"
 }
