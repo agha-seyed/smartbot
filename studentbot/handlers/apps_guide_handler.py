@@ -1,8 +1,22 @@
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, CallbackQueryHandler
+import json
 
-APPS_GUIDE_TEXT = """
+def load_texts(lang):
+    with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+async def show_apps_guide(update: Update, context: CallbackContext):
+    """Shows the apps guide."""
+    query = update.callback_query
+    await query.answer()
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+
+    # For now, we use the same text for all languages.
+    # This can be replaced with language-specific keys later.
+    apps_guide_text = """
 <b>📲 اپلیکیشن‌های کاربردی + راهنمای ورود به ایتالیا 🇮🇹</b>
 
 🎓 <b>اپلیکیشن‌های دانشگاه و خدمات:</b>
@@ -70,13 +84,10 @@ APPS_GUIDE_TEXT = """
 ✳️ نکته: پیشنهاد میشه بلیت ۱۰تایی اتوبوس از Tabaccheria بخرید (~۱۳€) و اپ Moovit نصب کنید.
 """
 
-async def show_apps_guide(update: Update, context: CallbackContext):
-    query = update.callback_query
-    await query.answer()
     await query.message.reply_text(
-        text=APPS_GUIDE_TEXT,
+        text=apps_guide_text,
         parse_mode=ParseMode.HTML,
         disable_web_page_preview=True
     )
 
-apps_guide_handler = CallbackQueryHandler(show_apps_guide, pattern='^apps_entry_guide$')
+apps_guide_handler = CallbackQueryHandler(show_apps_guide, pattern='^apps_guide$')

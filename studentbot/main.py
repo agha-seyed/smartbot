@@ -25,22 +25,22 @@ def main() -> None:
 
     # --- Feature Handlers ---
     app.add_handler(isee_handler.isee_conv_handler)
-    app.add_handler(apps_guide_handler.apps_guide_handler)
-
-    # The following handlers are still command-based and will be connected to buttons later
-    app.add_handler(question_handler.question_conv_handler)
-    app.add_handler(weather_handler.weather_handler)
     app.add_handler(consult_handler.consult_conv_handler)
-    app.add_handler(file_handler.pdf_handler)
-    app.add_handler(file_handler.video_handler)
-    app.add_handler(gamification_handler.gamification_profile_handler)
-    app.add_handler(location_handler.location_handler)
+    app.add_handler(question_handler.question_conv_handler)
+    app.add_handler(search_handler.search_handler)
+
+    for handler in menu_handler.menu_handlers:
+        app.add_handler(handler)
+
+    app.add_handler(file_handler.file_menu_handler)
+    app.add_handler(file_handler.file_sender_handler)
+    app.add_handler(location_handler.location_menu_handler)
+    app.add_handler(location_handler.location_sender_handler)
+
     app.add_handler(live_chat_handler.start_chat_handler)
     app.add_handler(live_chat_handler.end_chat_handler)
     app.add_handler(live_chat_handler.user_message_handler)
     app.add_handler(live_chat_handler.admin_message_handler)
-    app.add_handler(search_handler.search_handler)
-    app.add_handler(menu_handler.menu_handler)
 
 
     # Start the Bot

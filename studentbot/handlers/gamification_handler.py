@@ -17,7 +17,10 @@ def add_points(user_id, points_to_add):
     db.commit()
     db.close()
 
-async def show_profile(update: Update, context: CallbackContext):
+async def show_gamification_profile(update: Update, context: CallbackContext):
+    """Shows the user's gamification profile."""
+    query = update.callback_query
+    await query.answer()
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     user_id = update.effective_user.id
@@ -33,6 +36,6 @@ async def show_profile(update: Update, context: CallbackContext):
     else:
         profile_text = texts["gamification_no_profile"]
 
-    await update.message.reply_text(profile_text)
+    await query.message.reply_text(profile_text)
 
-gamification_profile_handler = CommandHandler("gamification", show_profile)
+gamification_profile_handler = CallbackQueryHandler(show_gamification_profile, pattern='^gamification$')

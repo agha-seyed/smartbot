@@ -8,7 +8,10 @@ def load_texts(lang):
     with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
         return json.load(f)
 
-async def get_weather(update: Update, context: CallbackContext):
+async def show_weather(update: Update, context: CallbackContext):
+    """Shows the weather in Perugia."""
+    query = update.callback_query
+    await query.answer()
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
 
@@ -28,9 +31,9 @@ async def get_weather(update: Update, context: CallbackContext):
             description=weather_description,
             temperature=temperature
         )
-        await update.message.reply_text(weather_text)
+        await query.message.reply_text(weather_text)
 
     except requests.exceptions.RequestException as e:
-        await update.message.reply_text(texts["weather_error"])
+        await query.message.reply_text(texts["weather_error"])
 
-weather_handler = CommandHandler("weather", get_weather)
+weather_handler = CallbackQueryHandler(show_weather, pattern='^weather$')

@@ -13,9 +13,12 @@ def load_texts(lang):
 QUESTION = range(1)
 
 async def start_question(update: Update, context: CallbackContext):
+    """Starts the question submission conversation."""
+    query = update.callback_query
+    await query.answer()
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    await update.message.reply_text(sanitize_markdown(texts["question_intro"]))
+    await query.message.reply_text(sanitize_markdown(texts["question_intro"]))
     return QUESTION
 
 async def get_question(update: Update, context: CallbackContext):
@@ -44,7 +47,7 @@ async def cancel(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 question_conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("question", start_question)],
+    entry_points=[CallbackQueryHandler(start_question, pattern='^question$')],
     states={
         QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)],
     },

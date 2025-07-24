@@ -15,13 +15,16 @@ def load_texts(lang):
 FIELD, DEGREE, DESTINATION, LANGUAGE_LEVEL, QUESTION = range(5)
 
 async def start_consult(update: Update, context: CallbackContext):
+    """Starts the consultation conversation."""
+    query = update.callback_query
+    await query.answer()
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    await update.message.reply_text(
+    await query.message.reply_text(
         sanitize_markdown(texts["consult_intro"]),
         parse_mode="MarkdownV2"
     )
-    await update.message.reply_text(
+    await query.message.reply_text(
         sanitize_markdown(texts["consult_field"]),
         parse_mode="MarkdownV2"
     )
@@ -140,7 +143,7 @@ async def cancel(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 consult_conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("consult", start_consult)],
+    entry_points=[CallbackQueryHandler(start_consult, pattern='^consult$')],
     states={
         FIELD: [MessageHandler(filters.TEXT & ~filters.COMMAND, field)],
         DEGREE: [CallbackQueryHandler(degree)],

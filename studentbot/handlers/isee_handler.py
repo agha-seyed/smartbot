@@ -10,7 +10,8 @@ def load_texts(lang):
 # Stages
 FAMILY_MEMBERS, ANNUAL_INCOME, PROPERTY_OWNERSHIP, PROPERTY_SIZE = range(4)
 
-async def start_isee(update: Update, context: CallbackContext):
+async def start_isee_calculation(update: Update, context: CallbackContext):
+    """Starts the ISEE calculation conversation."""
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "fa")
@@ -112,7 +113,7 @@ async def cancel(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 isee_conv_handler = ConversationHandler(
-    entry_points=[CallbackQueryHandler(start_isee, pattern='^isee_calculator$')],
+    entry_points=[CallbackQueryHandler(start_isee_calculation, pattern='^isee$')],
     states={
         FAMILY_MEMBERS: [MessageHandler(filters.TEXT & ~filters.COMMAND, family_members)],
         ANNUAL_INCOME: [MessageHandler(filters.TEXT & ~filters.COMMAND, annual_income)],
