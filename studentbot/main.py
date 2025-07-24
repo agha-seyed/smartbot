@@ -19,16 +19,9 @@ def main() -> None:
     app.add_handler(cmd_start.start_handler)
     app.add_handler(cmd_start.lang_handler)
 
-    # --- Menu Placeholder Handlers ---
-    # Handles buttons for features that are not yet implemented
-    app.add_handler(cmd_start.menu_placeholder_handler)
-
     # --- Feature Handlers ---
     # Connect existing handlers to their new callback_data
-    app.add_handler(profile_handler.profile_conv_handler) # Entry via /profile for now
-    app.add_handler(isee_handler.isee_conv_handler) # Entry via /isee for now
-    app.add_handler(question_handler.question_conv_handler) # Entry via /question for now
-    app.add_handler(weather_handler.weather_handler) # Entry via /weather for now
+    app.add_handler(isee_handler.isee_conv_handler)
 
     # This handler was specifically requested and is now connected to a button
     app.add_handler(apps_guide_handler.apps_guide_handler)
