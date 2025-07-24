@@ -43,9 +43,15 @@ def main() -> None:
     app.add_handler(live_chat_handler.user_message_handler)
     app.add_handler(live_chat_handler.admin_message_handler)
 
+    app.add_handler(admin_handler.admin_handler)
     app.add_handler(admin_handler.add_file_handler)
     app.add_handler(admin_handler.remove_file_handler)
     app.add_handler(admin_handler.broadcast_handler)
+    app.add_handler(admin_handler.schedule_handler)
+    app.add_handler(admin_handler.poll_handler)
+
+    for handler in admin_handler.admin_menu_handlers:
+        app.add_handler(handler)
 
 
     # Start the Bot

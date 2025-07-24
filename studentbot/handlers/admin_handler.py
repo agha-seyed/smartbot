@@ -1,5 +1,5 @@
-from telegram import Update
-from telegram.ext import CallbackContext, CommandHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
 from config import ADMIN_CHAT_ID
 from utils.db import get_all_users
 import json
@@ -75,6 +75,113 @@ async def broadcast(update: Update, context: CallbackContext):
 
     await update.message.reply_text(f"Message broadcasted to {len(users)} users.")
 
+async def admin_menu(update: Update, context: CallbackContext):
+    """Shows the admin menu."""
+    if not is_admin(update):
+        return
+
+    keyboard = [
+        [InlineKeyboardButton("Add File", callback_data='admin_add_file')],
+        [InlineKeyboardButton("Remove File", callback_data='admin_remove_file')],
+        [InlineKeyboardButton("Broadcast Message", callback_data='admin_broadcast')],
+        [InlineKeyboardButton("Schedule Message", callback_data='admin_schedule')],
+        [InlineKeyboardButton("Create Poll", callback_data='admin_poll')],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Admin Menu:", reply_markup=reply_markup)
+
+async def admin_add_file_prompt(update: Update, context: CallbackContext):
+    """Prompts the admin to add a file."""
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("Please use the format: /addfile <file_type> <file_name>")
+
+async def admin_remove_file_prompt(update: Update, context: CallbackContext):
+    """Prompts the admin to remove a file."""
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("Please use the format: /removefile <file_type> <file_name>")
+
+async def admin_broadcast_prompt(update: Update, context: CallbackContext):
+    """Prompts the admin to broadcast a message."""
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("Please use the format: /broadcast <message>")
+
+admin_handler = CommandHandler("admin", admin_menu)
 add_file_handler = CommandHandler("addfile", add_file)
 remove_file_handler = CommandHandler("removefile", remove_file)
+from datetime import datetime, timedelta
+
+async def schedule(update: Update, context: CallbackContext):
+    """Schedules a message to be sent to all users."""
+    if not is_admin(update):
+        return
+
+    try:
+        time_str = context.args[0]
+        message = " ".join(context.args[1:])
+        send_time = datetime.strptime(time_str, "%Y-%m-%d-%H:%M")
+    except (ValueError, IndexError):
+        await update.message.reply_text("Usage: /schedule YYYY-MM-DD-HH:MM <message>")
+        return
+
+    users = get_all_users()
+    for user in users:
+        context.job_queue.run_once(
+            lambda ctx: ctx.bot.send_message(chat_id=user.id, text=message),
+            send_time
+        )
+
+    await update.message.reply_text(f"Message scheduled to be sent at {send_time} to {len(users)} users.")
+
+async def poll(update: Update, context: CallbackContext):
+    """Creates a poll."""
+    if not is_admin(update):
+        return
+
+    try:
+        question = context.args[0]
+        options = context.args[1:]
+    except IndexError:
+        await update.message.reply_text("Usage: /poll <question> <option1> <option2> ...")
+        return
+
+    users = get_all_users()
+    for user in users:
+        try:
+            await context.bot.send_poll(
+                chat_id=user.id,
+                question=question,
+                options=options,
+                is_anonymous=False,
+                allows_multiple_answers=False,
+            )
+        except Exception as e:
+            print(f"Could not send poll to user {user.id}: {e}")
+
+    await update.message.reply_text(f"Poll sent to {len(users)} users.")
+
 broadcast_handler = CommandHandler("broadcast", broadcast)
+schedule_handler = CommandHandler("schedule", schedule)
+poll_handler = CommandHandler("poll", poll)
+
+async def admin_schedule_prompt(update: Update, context: CallbackContext):
+    """Prompts the admin to schedule a message."""
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("Please use the format: /schedule YYYY-MM-DD-HH:MM <message>")
+
+async def admin_poll_prompt(update: Update, context: CallbackContext):
+    """Prompts the admin to create a poll."""
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text("Please use the format: /poll <question> <option1> <option2> ...")
+
+admin_menu_handlers = [
+    CallbackQueryHandler(admin_add_file_prompt, pattern='^admin_add_file$'),
+    CallbackQueryHandler(admin_remove_file_prompt, pattern='^admin_remove_file$'),
+    CallbackQueryHandler(admin_broadcast_prompt, pattern='^admin_broadcast$'),
+    CallbackQueryHandler(admin_schedule_prompt, pattern='^admin_schedule$'),
+    CallbackQueryHandler(admin_poll_prompt, pattern='^admin_poll$'),
+]
