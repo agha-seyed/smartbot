@@ -1,5 +1,5 @@
 {
-    "welcome_message": "🎓 <b>به ربات اسکولارینو خوش آمدید!</b>\n\n🤖 این ربات به شما کمک می‌کند تا در مسیر مهاجرت تحصیلی، دریافت بورسیه، زندگی در پروجا و آشنایی با دانشگاه‌ها راهنمایی شوید.\n\n📋 <b>امکانات اصلی:</b>\n- اطلاعات کامل بورسیه‌های ایتالیا\n- مشاوره مهاجرتی\n- معرفی مراحل قانونی بعد از ورود\n- راهنمای مسکن، زندگی دانشجویی و اپلیکیشن‌های کاربردی\n- فرم پرسش‌ و پاسخ هوشمند\n- محاسبه عدد ISEE برای بررسی وضعیت مالی\n\nلطفاً زبان مورد نظر خود را انتخاب کنید:",
+    "welcome_message": "🎓 <b>به ربات اسکولارینو خوش آمدید!</b>\n\n🤖 این ربات به شما کمک می‌کند تا در مسیر مهاجرت تحصیلی، دریافت بورسیه، زندگی در پروجا و آشنایی با دانشگاه‌ها راهنمایی شوید.\n\n📋 <b>امکانات اصلی:</b>\n- اطلاعات کامل بورسیه‌های ایتالیا\n- مشاوره مهاجرتی\n- معرفی stages قانونی بعد از ورود\n- راهنمای مسکن، زندگی دانشجویی و اپلیکیشن‌های کاربردی\n- فرم پرسش‌ و پاسخ هوشمند\n- محاسبه عدد ISEE برای بررسی وضعیت مالی\n\nلطفاً زبان مورد نظر خود را انتخاب کنید:",
     "main_menu_title": "منوی اصلی",
     "under_construction": "این بخش در حال ساخت است.",
     "conversation_cancelled": "عملیات لغو شد.",
@@ -79,5 +79,23 @@
     "consult_admin_notify": "درخواست مشاوره جدید:\nنام: {name}\nرشته: {field}\nمقطع: {degree}\nمقصد: {destination}\nسطح زبان: {language}\nسؤال: {question}\nفایل: {file_id}",
     "respond": "پاسخ",
     "archive": "بایگانی",
-    "consult_confirmation": "درخواست مشاوره شما ثبت شد:\nنام: {name}\nرشته: {field}\nمقطع: {degree}\nمقصد: {destination}\nسطح زبان: {language}\nسؤال: {question}"
+    "consult_confirmation": "درخواست مشاوره شما ثبت شد:\nنام: {name}\nرشته: {field}\nمقطع: {degree}\nمقصد: {destination}\nسطح زبان: {language}\nسؤال: {question}",
+    "admin_not_authorized": "شما مجاز به دسترسی به این عملیات نیستید.",
+    "admin_add_file_usage": "لطفاً از فرمت زیر استفاده کنید: /addfile <نوع_فایل> <نام_فایل>",
+    "admin_remove_file_usage": "لطفاً از فرمت زیر استفاده کنید: /removefile <نوع_فایل> <نام_فایل>",
+    "admin_broadcast_usage": "لطفاً از فرمت زیر استفاده کنید: /broadcast <پیام>",
+    "admin_schedule_usage": "لطفاً از فرمت زیر استفاده کنید: /schedule YYYY-MM-DD-HH:MM <پیام>",
+    "admin_poll_usage": "لطفاً از فرمت زیر استفاده کنید: /poll <سؤال> <گزینه1> <گزینه2> ...",
+    "admin_file_added": "فایل '{file_name}' به '{file_type}' اضافه شد.",
+    "admin_file_removed": "فایل '{file_name}' از '{file_type}' حذف شد.",
+    "admin_file_not_found": "فایل '{file_name}' در '{file_type}' یافت نشد.",
+    "admin_broadcast_success": "پیام به {user_count} کاربر ارسال شد.",
+    "admin_schedule_success": "پیام برای ارسال در {send_time} به {user_count} کاربر برنامه‌ریزی شد.",
+    "admin_poll_success": "نظرسنجی به {user_count} کاربر ارسال شد.",
+    "admin_menu_title": "منوی مدیریت",
+    "admin_menu_add_file": "اضافه کردن فایل",
+    "admin_menu_remove_file": "حذف فایل",
+    "admin_menu_broadcast": "ارسال پیام همگانی",
+    "admin_menu_schedule": "برنامه‌ریزی پیام",
+    "admin_menu_poll": "ایجاد نظرسنجی"
 }
