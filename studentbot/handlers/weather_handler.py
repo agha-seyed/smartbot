@@ -1,5 +1,5 @@
 # بخش: Handlerهای اصلی
-# فایل: weather_handler.py
+# فایل: weather_handler.py (نسخه بهبودیافته)
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -109,13 +109,15 @@ async def fetch_weather(message, context: ContextTypes.DEFAULT_TYPE, city: str) 
 
         weather = data["weather"][0]["description"]
         temp = data["main"]["temp"]
+        feels_like = data["main"]["feels_like"]
         humidity = data["main"]["humidity"]
         wind_speed = data["wind"]["speed"]
+        clouds = data["clouds"]["all"]
 
         weather_message = texts.get(
             "weather_response",
-            "Weather in {city}:\nDescription: {weather}\nTemperature: {temp}°C\nHumidity: {humidity}%\nWind Speed: {wind_speed} m/s"
-        ).format(city=city, weather=weather, temp=temp, humidity=humidity, wind_speed=wind_speed)
+            "Weather in {city}:\nDescription: {weather}\nTemperature: {temp}°C\nFeels Like: {feels_like}°C\nHumidity: {humidity}%\nWind Speed: {wind_speed} m/s\nCloud Cover: {clouds}%"
+        ).format(city=city, weather=weather, temp=temp, feels_like=feels_like, humidity=humidity, wind_speed=wind_speed, clouds=clouds)
 
         await context.bot.send_message(
             chat_id=user_id,
