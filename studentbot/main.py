@@ -1,11 +1,11 @@
-# بخش: جریان اصلی ربات
 # فایل: main.py
 
+import asyncio
 import logging
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application
 from telegram import BotCommand
 from config import TELEGRAM_TOKEN, logger
-from handlers.cmd_start import start
+from handlers.cmd_start import handlers as start_handlers
 from handlers.profile_handler import handlers as profile_handlers
 from handlers.file_handler import handlers as file_handlers
 from handlers.question_handler import handlers as question_handlers
@@ -17,75 +17,79 @@ from handlers.live_chat_handler import handlers as live_chat_handlers
 from handlers.location_handler import handlers as location_handlers
 from handlers.feedback_handler import handlers as feedback_handlers
 from handlers.apps_guide_handler import handlers as apps_guide_handlers
-from handlers.search_handler import handlers as search_handlers
 from handlers.admin_handler import handlers as admin_handlers
+from handlers.search_handler import handlers as search_handlers
+from handlers.menu_handler import handlers as menu_handlers
+from handlers.submenu_handler import handlers as submenu_handlers
 
 async def set_bot_commands(application):
     """
-    Set bot commands for users (excluding admin commands).
+    Set bot commands for users, excluding /admin and /login for non-admins.
     """
     commands = [
-        BotCommand("start", "Start the bot"),
-        BotCommand("profile", "Manage your profile"),
-        BotCommand("ask", "Ask a question"),
-        BotCommand("consult", "Request a consultation"),
-        BotCommand("weather", "Check weather"),
-        BotCommand("isee", "Submit ISEE"),
-        BotCommand("points", "View your points"),
-        BotCommand("leaderboard", "View leaderboard"),
-        BotCommand("location", "Share your location"),
-        BotCommand("feedback", "Submit feedback"),
-        BotCommand("apps", "Explore apps"),
-        BotCommand("search", "Search scholarships and apps")
+        BotCommand("start", "شروع ربات"),
+        BotCommand("menu", "نمایش منوی اصلی"),
+        BotCommand("profile", "مدیریت پروفایل"),
+        BotCommand("ask", "پرسیدن سؤالم"),
+        BotCommand("consult", "درخواست مشاوره"),
+        BotCommand("weather", "بررسی آب‌وهوا"),
+        BotCommand("isee", "ارسال ISEE"),
+        BotCommand("points", "مشاهده امتیازات"),
+        BotCommand("leaderboard", "مشاهده جدول امتیازات"),
+        BotCommand("location", "اشتراک‌گذاری موقعیت مکانی"),
+        BotCommand("feedback", "ارسال بازخورد"),
+        BotCommand("apps", "کاوش اپلیکیشن‌ها"),
+        BotCommand("search", "جستجوی بورسیه‌ها و اپلیکیشن‌ها")
     ]
     await application.bot.set_my_commands(commands)
 
 async def main():
     """
-    Main function to run the bot.
+    Main function to initialize and run the bot.
     """
-    logging.basicConfig(
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-    )
-    logger.info("Starting bot...")
-
+    logger.info("Starting StudentBot...")
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # Add handlers
-    application.add_handler(CommandHandler("start", start))
-    for handler in profile_handlers:
-        application.add_handler(handler)
-    for handler in file_handlers:
-        application.add_handler(handler)
-    for handler in question_handlers:
-        application.add_handler(handler)
-    for handler in weather_handlers:
-        application.add_handler(handler)
-    for handler in consult_handlers:
-        application.add_handler(handler)
-    for handler in isee_handlers:
-        application.add_handler(handler)
-    for handler in gamification_handlers:
-        application.add_handler(handler)
-    for handler in live_chat_handlers:
-        application.add_handler(handler)
-    for handler in location_handlers:
-        application.add_handler(handler)
-    for handler in feedback_handlers:
-        application.add_handler(handler)
-    for handler in apps_guide_handlers:
-        application.add_handler(handler)
-    for handler in search_handlers:
-        application.add_handler(handler)
-    for handler in admin_handlers:
+    # Register handlers
+    all_handlers = (
+        start_handlers +
+        profile_handlers +
+        file_handlers +
+        question_handlers +
+        weather_handlers +
+        consult_handlers +
+        isee_handlers +
+        gamification_handlers +
+        live_chat_handlers +
+        location_handlers +
+        feedback_handlers +
+        apps_guide_handlers +
+        admin_handlers +
+        search_handlers +
+        menu_handlers +
+        submenu_handlers
+    )
+
+    for handler in all_handlers:
         application.add_handler(handler)
 
     # Set bot commands
     await set_bot_commands(application)
 
-    # Start the bot
-    await application.run_polling()
+    # Start polling
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
+    logger.info("StudentBot is running!")
+
+    # Keep the bot running
+    while True:
+        await asyncio.sleep(3600)
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user.")
+    except Exception as e:
+        logger.error(f"Error running bot: {e}")
