@@ -1,199 +1,243 @@
+# بخش: Handlerهای اصلی
+# فایل: isee_handler.py
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ConversationHandler,
-    CallbackContext,
+    Application,
     CommandHandler,
     MessageHandler,
-    Filters,
     CallbackQueryHandler,
+    ConversationHandler,
+    ContextTypes,
+    filters,
 )
-from utils.text_formatter import sanitize_markdown
-from config import logger
+from config import logger, ADMIN_CHAT_ID
+from utils.gsheets import append_to_sheet
+from datetime import datetime
 import json
 
-def load_texts(lang):
-    """Load language-specific texts from JSON files."""
+# States for ConversationHandler
+INCOME, ASSETS, FAMILY_MEMBERS, CONFIRM = range(4)
+
+def load_texts(lang: str) -> dict:
+    """
+    Load language-specific texts from JSON files.
+
+    Args:
+        lang (str): Language code (e.g., 'en', 'fa', 'it').
+
+    Returns:
+        dict: Language texts or empty dict if file not found.
+    """
     try:
-        with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
+        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
         logger.error(f"Language file lang/{lang}.json not found.")
-        raise
+        return {}
     except json.JSONDecodeError:
         logger.error(f"Invalid JSON in lang/{lang}.json.")
-        raise
+        return {}
 
-# Stages
-FAMILY_MEMBERS, ANNUAL_INCOME, PROPERTY_OWNERSHIP, PROPERTY_SIZE = range(4)
-
-async def start_isee_calculation(update: Update, context: CallbackContext):
-    """Starts the ISEE calculation conversation."""
-    logger.info(f"User {update.effective_user.id} started ISEE calculation.")
-    query = update.callback_query
-    await query.answer()
+async def start_isee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Start the ISEE calculation process.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        await query.message.reply_text(sanitize_markdown(texts["isee_intro"]))
-        await query.message.reply_text(sanitize_markdown(texts["isee_family_members"]))
-        return FAMILY_MEMBERS
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await query.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} started ISEE calculation.")
 
-async def family_members(update: Update, context: CallbackContext):
-    """Receives the number of family members."""
+    await update.message.reply_text(
+        texts.get("isee_intro", "Let's calculate your ISEE. Please enter your annual family income (in EUR):")
+    )
+    return INCOME
+
+async def get_income(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the user's annual family income.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    income_text = update.message.text.strip()
+
     try:
-        texts = load_texts(lang)
-        context.user_data['isee'] = {'family_members': int(update.message.text)}
-        await update.message.reply_text(sanitize_markdown(texts["isee_annual_income"]))
-        return ANNUAL_INCOME
+        income = float(income_text)
+        if income < 0:
+            raise ValueError
     except ValueError:
-        logger.error(f"Invalid input for family members from user {update.effective_user.id}")
-        await update.message.reply_text(sanitize_markdown(texts.get("error_message", "Invalid input. Please enter a number.")))
-        return FAMILY_MEMBERS
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid income (non-negative number in EUR).")
+        )
+        return INCOME
 
-async def annual_income(update: Update, context: CallbackContext):
-    """Receives the annual income."""
+    context.user_data["isee_income"] = income
+    logger.info(f"User {user_id} entered income: {income}")
+    await update.message.reply_text(
+        texts.get("isee_assets", "Please enter your total family assets (in EUR):")
+    )
+    return ASSETS
+
+async def get_assets(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the user's total family assets.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    assets_text = update.message.text.strip()
+
     try:
-        texts = load_texts(lang)
-        context.user_data['isee']['annual_income'] = float(update.message.text)
-        keyboard = [
-            [InlineKeyboardButton(texts["property_owner"], callback_data='owner')],
-            [InlineKeyboardButton(texts["property_tenant"], callback_data='tenant')],
+        assets = float(assets_text)
+        if assets < 0:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter valid assets (non-negative number in EUR).")
+        )
+        return ASSETS
+
+    context.user_data["isee_assets"] = assets
+    logger.info(f"User {user_id} entered assets: {assets}")
+    await update.message.reply_text(
+        texts.get("isee_family_members", "How many members are in your family?")
+    )
+    return FAMILY_MEMBERS
+
+async def get_family_members(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the number of family members.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    members_text = update.message.text.strip()
+
+    try:
+        members = int(members_text)
+        if members < 1 or members > 20:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid number of family members (1-20).")
+        )
+        return FAMILY_MEMBERS
+
+    context.user_data["isee_family_members"] = members
+    logger.info(f"User {user_id} entered family members: {members}")
+
+    # Simple ISEE calculation (placeholder)
+    income = context.user_data["isee_income"]
+    assets = context.user_data["isee_assets"]
+    isee = (income + assets * 0.2) / members  # Simplified formula
+
+    context.user_data["isee_result"] = round(isee, 2)
+    isee_summary = (
+        f"{texts.get('isee_income', 'Income')}: {income} EUR\n"
+        f"{texts.get('isee_assets', 'Assets')}: {assets} EUR\n"
+        f"{texts.get('isee_family_members', 'Family Members')}: {members}\n"
+        f"{texts.get('isee_result', 'Estimated ISEE')}: {isee} EUR"
+    )
+    keyboard = [
+        [
+            InlineKeyboardButton(texts.get("yes", "Yes"), callback_data="confirm_isee"),
+            InlineKeyboardButton(texts.get("no", "No"), callback_data="cancel_isee"),
         ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(sanitize_markdown(texts["isee_property_ownership"]), reply_markup=reply_markup)
-        return PROPERTY_OWNERSHIP
-    except ValueError:
-        logger.error(f"Invalid input for annual income from user {update.effective_user.id}")
-        await update.message.reply_text(sanitize_markdown(texts.get("error_message", "Invalid input. Please enter a number.")))
-        return ANNUAL_INCOME
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        texts.get("isee_confirm", "Please confirm your ISEE data:") + "\n\n" + isee_summary,
+        reply_markup=reply_markup
+    )
+    return CONFIRM
 
-async def property_ownership(update: Update, context: CallbackContext):
-    """Receives property ownership status."""
+async def confirm_isee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Save the ISEE data to Google Sheets, notify admin, and end the conversation.
+    """
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    income = context.user_data["isee_income"]
+    assets = context.user_data["isee_assets"]
+    members = context.user_data["isee_family_members"]
+    isee = context.user_data["isee_result"]
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"User {user_id} confirmed ISEE data.")
+
     try:
-        texts = load_texts(lang)
-        context.user_data['isee']['property_ownership'] = query.data
-        if query.data == 'owner':
-            await query.edit_message_text(text=sanitize_markdown(texts["isee_property_size"]))
-            return PROPERTY_SIZE
-        else:
-            await calculate_and_show_isee(update, context)
-            return ConversationHandler.END
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await query.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
+        # Save to Google Sheets
+        data = [user_id, income, assets, members, isee, timestamp]
+        append_to_sheet("StudentBotQuestions", data)
 
-async def property_size(update: Update, context: CallbackContext):
-    """Receives property size and calculates ISEE."""
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        context.user_data['isee']['property_size'] = float(update.message.text)
-        await calculate_and_show_isee(update, context)
-        return ConversationHandler.END
-    except ValueError:
-        logger.error(f"Invalid input for property size from user {update.effective_user.id}")
-        await update.message.reply_text(sanitize_markdown(texts.get("error_message", "Invalid input. Please enter a number.")))
-        return PROPERTY_SIZE
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
-
-async def calculate_and_show_isee(update: Update, context: CallbackContext):
-    """Calculates and displays the ISEE result."""
-    logger.info(f"User {update.effective_user.id} calculating ISEE.")
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        isee_data = context.user_data['isee']
-
-        family_members = isee_data['family_members']
-        annual_income = isee_data['annual_income']
-        property_ownership = isee_data['property_ownership']
-        property_size = isee_data.get('property_size', 0)
-
-        property_value = property_size * 500 * 0.2 if property_ownership == 'owner' else 0
-
-        household_coefficient = 1
-        if family_members == 2:
-            household_coefficient = 1.57
-        elif family_members == 3:
-            household_coefficient = 2.04
-        elif family_members == 4:
-            household_coefficient = 2.46
-        elif family_members >= 5:
-            household_coefficient = 2.85
-
-        isee = (annual_income + property_value) / household_coefficient
-        logger.info(f"User {update.effective_user.id} ISEE calculated: {isee}")
-
-        scholarship_status = texts["scholarship_none"]
-        if isee <= 27948.60:
-            if isee <= (27948.60 * 0.55):
-                scholarship_status = texts["scholarship_full"]
-            elif isee <= (27948.60 * 0.715):
-                scholarship_status = texts["scholarship_medium"]
-            else:
-                scholarship_status = texts["scholarship_partial"]
-
-        result_text = texts["isee_result"].format(
-            family_members=family_members,
-            annual_income=annual_income,
-            property_ownership=texts[f"property_{property_ownership}"],
-            isee=f"{isee:.2f}",
-            scholarship_status=scholarship_status
+        # Notify admin
+        admin_message = (
+            texts.get("isee_admin_notify", "New ISEE calculation submitted:\n")
+            + f"User ID: {user_id}\n"
+            + f"Income: {income} EUR\n"
+            + f"Assets: {assets} EUR\n"
+            + f"Family Members: {members}\n"
+            + f"Estimated ISEE: {isee} EUR\n"
+            + f"Time: {timestamp}"
         )
-
         await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=sanitize_markdown(result_text),
-            parse_mode="MarkdownV2"
-        )
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=sanitize_markdown(texts.get("error_message", "Error: Language data is incomplete.")),
-            parse_mode="MarkdownV2"
+            chat_id=ADMIN_CHAT_ID,
+            text=admin_message
         )
 
-async def cancel(update: Update, context: CallbackContext):
-    """Cancels the ISEE calculation conversation."""
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        await update.message.reply_text(sanitize_markdown(texts["conversation_cancelled"]))
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Operation cancelled due to an error.")
+        await query.message.reply_text(
+            texts.get("isee_submitted", "Your ISEE data has been submitted successfully!")
+        )
+    except Exception as e:
+        logger.error(f"Error saving ISEE data for user {user_id}: {e}")
+        await query.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
+        )
+
+    # Clear ISEE data
+    for key in ["isee_income", "isee_assets", "isee_family_members", "isee_result"]:
+        context.user_data.pop(key, None)
+
     return ConversationHandler.END
 
+async def cancel_isee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Cancel ISEE calculation and end the conversation.
+    """
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} cancelled ISEE calculation.")
+
+    await query.message.reply_text(
+        texts.get("conversation_cancelled", "ISEE calculation cancelled.")
+    )
+
+    # Clear ISEE data
+    for key in ["isee_income", "isee_assets", "isee_family_members", "isee_result"]:
+        context.user_data.pop(key, None)
+
+    return ConversationHandler.END
+
+# Define ConversationHandler
 isee_conv_handler = ConversationHandler(
-    entry_points=[CallbackQueryHandler(start_isee_calculation, pattern='^isee$')],
+    entry_points=[CommandHandler("isee", start_isee)],
     states={
-        FAMILY_MEMBERS: [MessageHandler(Filters.TEXT & ~Filters.COMMAND, family_members)],
-        ANNUAL_INCOME: [MessageHandler(Filters.TEXT & ~Filters.COMMAND, annual_income)],
-        PROPERTY_OWNERSHIP: [CallbackQueryHandler(property_ownership)],
-        PROPERTY_SIZE: [MessageHandler(Filters.TEXT & ~Filters.COMMAND, property_size)],
+        INCOME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_income)],
+        ASSETS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_assets)],
+        FAMILY_MEMBERS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_family_members)],
+        CONFIRM: [
+            CallbackQueryHandler(confirm_isee, pattern="^confirm_isee$"),
+            CallbackQueryHandler(cancel_isee, pattern="^cancel_isee$"),
+        ],
     },
-    fallbacks=[CommandHandler("cancel", cancel)],
-    per_message=True  # تغییر به True برای رفع PTBUserWarning
+    fallbacks=[CommandHandler("cancel", cancel_isee)],
 )
+
+# Define handlers for main.py
+handlers = [isee_conv_handler]
