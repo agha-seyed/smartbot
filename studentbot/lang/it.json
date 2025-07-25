@@ -50,5 +50,8 @@
     "cils_text": "L'esame CILS è un altro prestigioso esame di lingua italiana, tenuto dall'Università per Stranieri di Siena. Per maggiori informazioni, visita il sito dell'università.",
     "plida_text": "L'esame PLIDA è tenuto dalla Società Dante Alighieri ed è un altro prestigioso esame di lingua italiana. Per maggiori informazioni, visita il sito della Società Dante Alighieri.",
     "user_feedback_prompt": "Inviaci il tuo feedback:",
-    "feedback_thanks": "Grazie per il tuo feedback!"
+    "feedback_thanks": "Grazie per il tuo feedback!",
+    "question_intro": "Inserisci la tua domanda:",
+    "question_submitted": "La tua domanda è stata inviata con successo!",
+    "error_message": "Si è verificato un errore. Riprova più tardi."
 }
