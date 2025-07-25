@@ -1,5 +1,5 @@
 # بخش: Handlerهای اصلی
-# فایل: isee_handler.py
+# فایل: isee_handler.py (نسخه بهبودیافته)
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -13,6 +13,8 @@ from telegram.ext import (
 )
 from config import logger, ADMIN_CHAT_ID
 from utils.gsheets import append_to_sheet
+from utils.db import get_db, User
+from sqlalchemy.orm import Session
 from datetime import datetime
 import json
 
@@ -47,6 +49,24 @@ async def start_isee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     logger.info(f"User {user_id} started ISEE calculation.")
+
+    # Check if user has a profile
+    db: Session = next(get_db())
+    user = db.query(User).filter_by(user_id=user_id).first()
+    if not user:
+        await update.message.reply_text(
+            texts.get("no_profile", "Please create your profile first using /profile.")
+        )
+        return ConversationHandler.END
+
+    context.user_data["user_profile"] = {
+        "first_name": user.first_name,
+        "family_name": user.family_name,
+        "age": user.age,
+        "email": user.email,
+        "field_of_study": user.field_of_study,
+        "country": user.country
+    }
 
     await update.message.reply_text(
         texts.get("isee_intro", "Let's calculate your ISEE. Please enter your annual family income (in EUR):")
@@ -131,9 +151,17 @@ async def get_family_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
     income = context.user_data["isee_income"]
     assets = context.user_data["isee_assets"]
     isee = (income + assets * 0.2) / members  # Simplified formula
-
     context.user_data["isee_result"] = round(isee, 2)
+
+    # Prepare summary with profile
+    profile = context.user_data["user_profile"]
     isee_summary = (
+        f"{texts.get('profile_name', 'Name')}: {profile['first_name']}\n"
+        f"{texts.get('profile_family_name', 'Family Name')}: {profile['family_name']}\n"
+        f"{texts.get('profile_age', 'Age')}: {profile['age']}\n"
+        f"{texts.get('profile_email', 'Email')}: {profile['email']}\n"
+        f"{texts.get('profile_field_of_study', 'Field of Study')}: {profile['field_of_study']}\n"
+        f"{texts.get('profile_country', 'Country')}: {profile['country']}\n"
         f"{texts.get('isee_income', 'Income')}: {income} EUR\n"
         f"{texts.get('isee_assets', 'Assets')}: {assets} EUR\n"
         f"{texts.get('isee_family_members', 'Family Members')}: {members}\n"
@@ -154,7 +182,7 @@ async def get_family_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def confirm_isee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Save the ISEE data to Google Sheets, notify admin, and end the conversation.
+    Save the ISEE data to Google Sheets and database, notify admin, and end the conversation.
     """
     query = update.callback_query
     await query.answer()
@@ -165,18 +193,41 @@ async def confirm_isee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     assets = context.user_data["isee_assets"]
     members = context.user_data["isee_family_members"]
     isee = context.user_data["isee_result"]
+    profile = context.user_data["user_profile"]
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"User {user_id} confirmed ISEE data.")
 
     try:
         # Save to Google Sheets
-        data = [user_id, income, assets, members, isee, timestamp]
+        data = [
+            user_id,
+            profile["first_name"] or "",
+            profile["family_name"] or "",
+            profile["age"] or "",
+            profile["email"] or "",
+            profile["field_of_study"] or "",
+            profile["country"] or "",
+            income,
+            assets,
+            timestamp
+        ]
         append_to_sheet("StudentBotQuestions", data)
+
+        # Save ISEE to database
+        db: Session = next(get_db())
+        user = db.query(User).filter_by(user_id=user_id).first()
+        user.isee = isee
+        db.commit()
 
         # Notify admin
         admin_message = (
             texts.get("isee_admin_notify", "New ISEE calculation submitted:\n")
             + f"User ID: {user_id}\n"
+            + f"Name: {profile['first_name']} {profile['family_name']}\n"
+            + f"Age: {profile['age']}\n"
+            + f"Email: {profile['email']}\n"
+            + f"Field of Study: {profile['field_of_study']}\n"
+            + f"Country: {profile['country']}\n"
             + f"Income: {income} EUR\n"
             + f"Assets: {assets} EUR\n"
             + f"Family Members: {members}\n"
@@ -198,7 +249,7 @@ async def confirm_isee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         )
 
     # Clear ISEE data
-    for key in ["isee_income", "isee_assets", "isee_family_members", "isee_result"]:
+    for key in ["isee_income", "isee_assets", "isee_family_members", "isee_result", "user_profile"]:
         context.user_data.pop(key, None)
 
     return ConversationHandler.END
@@ -219,7 +270,7 @@ async def cancel_isee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     )
 
     # Clear ISEE data
-    for key in ["isee_income", "isee_assets", "isee_family_members", "isee_result"]:
+    for key in ["isee_income", "isee_assets", "isee_family_members", "isee_result", "user_profile"]:
         context.user_data.pop(key, None)
 
     return ConversationHandler.END
