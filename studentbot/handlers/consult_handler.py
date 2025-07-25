@@ -1,287 +1,205 @@
+# بخش: Handlerهای اصلی
+# فایل: consult_handler.py
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ConversationHandler,
-    CallbackContext,
+    Application,
     CommandHandler,
     MessageHandler,
-    Filters,
     CallbackQueryHandler,
+    ConversationHandler,
+    ContextTypes,
+    filters,
 )
-from utils.text_formatter import sanitize_markdown
-from utils.db import save_consultation
-from utils.gsheets import save_to_gsheets
-from utils.redis_utils import cache_session
-from config import ADMIN_CHAT_ID, logger
+from config import logger, ADMIN_CHAT_ID
+from utils.redis_utils import cache_session, get_session
+from utils.gsheets import append_to_sheet
+from datetime import datetime
 import json
 
-def load_texts(lang):
-    """Load language-specific texts from JSON files."""
+# States for ConversationHandler
+FIELD, DETAILS, CONFIRM = range(3)
+
+def load_texts(lang: str) -> dict:
+    """
+    Load language-specific texts from JSON files.
+
+    Args:
+        lang (str): Language code (e.g., 'en', 'fa', 'it').
+
+    Returns:
+        dict: Language texts or empty dict if file not found.
+    """
     try:
-        with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
+        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
         logger.error(f"Language file lang/{lang}.json not found.")
-        raise
+        return {}
     except json.JSONDecodeError:
         logger.error(f"Invalid JSON in lang/{lang}.json.")
-        raise
+        return {}
 
-# Stages
-FIELD, DEGREE, DESTINATION, LANGUAGE_LEVEL, QUESTION, FILE_UPLOAD = range(6)
+async def start_consultation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Start the consultation request process.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} started consultation request.")
 
-async def start_consult(update: Update, context: CallbackContext):
-    """Starts the consultation conversation."""
-    logger.info(f"User {update.effective_user.id} started a consultation.")
+    keyboard = [
+        [InlineKeyboardButton(texts.get("consult_migration", "Migration"), callback_data="consult_migration")],
+        [InlineKeyboardButton(texts.get("consult_scholarship", "Scholarship"), callback_data="consult_scholarship")],
+        [InlineKeyboardButton(texts.get("consult_residence", "Residence"), callback_data="consult_residence")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        texts.get("consult_intro", "Please select a consultation field:"),
+        reply_markup=reply_markup
+    )
+    return FIELD
+
+async def select_field(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the consultation field selection.
+    """
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        await query.message.reply_text(
-            sanitize_markdown(texts["consult_intro"]),
-            parse_mode="MarkdownV2"
-        )
-        await query.message.reply_text(
-            sanitize_markdown(texts["consult_field"]),
-            parse_mode="MarkdownV2"
-        )
-        context.user_data["consult"] = {
-            "name": context.user_data.get("profile", {}).get("name", "")
-        }
-        return FIELD
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await query.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
+    texts = load_texts(lang)
+    field = query.data.split("_")[1]
+    context.user_data["consult_field"] = field
+    logger.info(f"User {user_id} selected consultation field: {field}")
 
-async def field(update: Update, context: CallbackContext):
-    """Receives the field of study."""
+    await query.message.reply_text(
+        texts.get("consult_details", "Please provide details for your consultation request:")
+    )
+    return DETAILS
+
+async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the consultation details.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        context.user_data["consult"]["field"] = update.message.text
-        keyboard = [
-            [
-                InlineKeyboardButton(texts["degree_bachelor"], callback_data="bachelor"),
-                InlineKeyboardButton(texts["degree_master"], callback_data="master"),
-                InlineKeyboardButton(texts["degree_phd"], callback_data="phd")
-            ]
-        ]
+    texts = load_texts(lang)
+    details = update.message.text.strip()
+
+    if not details or len(details) > 1000:
         await update.message.reply_text(
-            sanitize_markdown(texts["consult_degree"]),
-            parse_mode="MarkdownV2",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            texts.get("error_message", "Please enter valid details (1-1000 characters).")
         )
-        return DEGREE
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
+        return DETAILS
 
-async def degree(update: Update, context: CallbackContext):
-    """Receives the degree level."""
+    context.user_data["consult_details"] = details
+    logger.info(f"User {user_id} provided consultation details.")
+
+    # Show confirmation message
+    consult_summary = (
+        f"{texts.get('consult_field', 'Field')}: {context.user_data['consult_field']}\n"
+        f"{texts.get('consult_details', 'Details')}: {details}"
+    )
+    keyboard = [
+        [
+            InlineKeyboardButton(texts.get("yes", "Yes"), callback_data="confirm_consult"),
+            InlineKeyboardButton(texts.get("no", "No"), callback_data="cancel_consult"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        texts.get("consult_confirm", "Please confirm your consultation request:") + "\n\n" + consult_summary,
+        reply_markup=reply_markup
+    )
+    return CONFIRM
+
+async def confirm_consultation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Save the consultation request to Google Sheets and Redis, notify admin, and end the conversation.
+    """
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    field = context.user_data.get("consult_field")
+    details = context.user_data.get("consult_details")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"User {user_id} confirmed consultation request.")
+
     try:
-        texts = load_texts(lang)
-        context.user_data["consult"]["degree"] = query.data
-        await query.edit_message_text(
-            text=f"{texts['consult_degree']}\n{texts[f'degree_{query.data}']}"
-        )
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=sanitize_markdown(texts["consult_destination"]),
-            parse_mode="MarkdownV2"
-        )
-        return DESTINATION
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await query.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
+        # Save to Google Sheets
+        data = [user_id, field, details, timestamp]
+        append_to_sheet("StudentBotQuestions", data)
 
-async def destination(update: Update, context: CallbackContext):
-    """Receives the destination country."""
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        context.user_data["consult"]["destination"] = update.message.text
-        await update.message.reply_text(
-            sanitize_markdown(texts["consult_language_level"]),
-            parse_mode="MarkdownV2"
-        )
-        return LANGUAGE_LEVEL
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
-
-async def language_level(update: Update, context: CallbackContext):
-    """Receives the language proficiency level."""
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        context.user_data["consult"]["language_level"] = update.message.text
-        await update.message.reply_text(
-            sanitize_markdown(texts["consult_question"]),
-            parse_mode="MarkdownV2"
-        )
-        return QUESTION
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
-
-async def question(update: Update, context: CallbackContext):
-    """Receives the consultation question."""
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        context.user_data["consult"]["question"] = update.message.text
-        keyboard = [
-            [
-                InlineKeyboardButton(texts["yes"], callback_data='yes'),
-                InlineKeyboardButton(texts["no"], callback_data='no')
-            ]
-        ]
-        await update.message.reply_text(
-            sanitize_markdown(texts["consult_file_prompt"]),
-            parse_mode="MarkdownV2",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return FILE_UPLOAD
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
-
-async def save_consultation_data(update: Update, context: CallbackContext):
-    """Saves the consultation data and notifies the admin."""
-    logger.info(f"User {update.effective_user.id} saving consultation data.")
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        consult_data = context.user_data["consult"]
-
-        # Save data to database
-        try:
-            save_consultation(consult_data)
-            logger.info(f"Consultation data for user {update.effective_user.id} saved to database.")
-        except Exception as e:
-            logger.error(f"Could not save consultation data for user {update.effective_user.id} to database: {e}")
-
-        # Save data to Google Sheets
-        try:
-            save_to_gsheets(consult_data, sheet_name="Consultations")
-            logger.info(f"Consultation data for user {update.effective_user.id} saved to Google Sheets.")
-        except Exception as e:
-            logger.error(f"Could not save consultation data for user {update.effective_user.id} to Google Sheets: {e}")
+        # Save session to Redis
+        session_data = {"field": field, "details": details, "timestamp": timestamp}
+        cache_session(user_id, session_data)
 
         # Notify admin
-        admin_msg = texts["consult_admin_notify"].format(
-            name=consult_data["name"],
-            field=consult_data["field"],
-            degree=consult_data["degree"],
-            destination=consult_data["destination"],
-            language=consult_data["language_level"],
-            question=consult_data["question"],
-            file_id=consult_data.get("file_id", "N/A")
+        admin_message = (
+            texts.get("consult_admin_notify", "New consultation request:\n")
+            + f"User ID: {user_id}\n"
+            + f"Field: {field}\n"
+            + f"Details: {details}\n"
+            + f"Time: {timestamp}"
         )
-        keyboard = [
-            [
-                InlineKeyboardButton(texts["respond"], callback_data=f"respond_{update.effective_user.id}"),
-                InlineKeyboardButton(texts["archive"], callback_data=f"archive_{update.effective_user.id}")
-            ]
-        ]
-        try:
-            await context.bot.send_message(
-                chat_id=ADMIN_CHAT_ID,
-                text=sanitize_markdown(admin_msg),
-                parse_mode="MarkdownV2",
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
-            logger.info(f"Admin notified for new consultation from user {update.effective_user.id}.")
-        except Exception as e:
-            logger.error(f"Could not notify admin for new consultation from user {update.effective_user.id}: {e}")
+        await context.bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=admin_message
+        )
 
-        # Confirm to user
-        user_msg = texts["consult_confirmation"].format(
-            name=consult_data["name"],
-            field=consult_data["field"],
-            degree=consult_data["degree"],
-            destination=consult_data["destination"],
-            language=consult_data["language_level"],
-            question=consult_data["question"]
+        await query.message.reply_text(
+            texts.get("consult_submitted", "Your consultation request has been submitted successfully!")
         )
-        await update.message.reply_text(
-            sanitize_markdown(user_msg),
-            parse_mode="MarkdownV2"
+    except Exception as e:
+        logger.error(f"Error saving consultation for user {user_id}: {e}")
+        await query.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
         )
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text(sanitize_markdown(texts.get("error_message", "Error: Language data is incomplete.")))
+
+    # Clear consultation data
+    for key in ["consult_field", "consult_details"]:
+        context.user_data.pop(key, None)
+
     return ConversationHandler.END
 
-async def cancel(update: Update, context: CallbackContext):
-    """Cancels the consultation conversation."""
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        await update.message.reply_text(sanitize_markdown(texts["conversation_cancelled"]))
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Operation cancelled due to an error.")
-    return ConversationHandler.END
-
-async def file_upload(update: Update, context: CallbackContext):
-    """Handles the file upload decision."""
+async def cancel_consultation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Cancel consultation request and end the conversation.
+    """
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        if query.data == 'yes':
-            await query.message.reply_text(sanitize_markdown(texts["consult_upload_file"]))
-            return FILE_UPLOAD
-        else:
-            await save_consultation_data(update, context)
-            return ConversationHandler.END
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await query.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} cancelled consultation request.")
 
-async def save_file(update: Update, context: CallbackContext):
-    """Saves the uploaded file and ends the conversation."""
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        file = update.message.document or update.message.photo or update.message.video
-        context.user_data["consult"]["file_id"] = file.file_id
-        await save_consultation_data(update, context)
-        return ConversationHandler.END
-    except AttributeError:
-        logger.error(f"Invalid file upload from user {update.effective_user.id}")
-        await update.message.reply_text(sanitize_markdown(texts.get("error_message", "Invalid file. Please upload a valid file.")))
-        return FILE_UPLOAD
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await update.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
+    await query.message.reply_text(
+        texts.get("conversation_cancelled", "Consultation request cancelled.")
+    )
 
+    # Clear consultation data
+    for key in ["consult_field", "consult_details"]:
+        context.user_data.pop(key, None)
+
+    return ConversationHandler.END
+
+# Define ConversationHandler
 consult_conv_handler = ConversationHandler(
-    entry_points=[CallbackQueryHandler(start_consult, pattern='^consult$')],
+    entry_points=[CommandHandler("consult", start_consultation)],
     states={
-        FIELD: [MessageHandler(Filters.TEXT & ~Filters.COMMAND, field)],
-        DEGREE: [CallbackQueryHandler(degree)],
-        DESTINATION: [MessageHandler(Filters.TEXT & ~Filters.COMMAND, destination)],
-        LANGUAGE_LEVEL: [MessageHandler(Filters.TEXT & ~Filters.COMMAND, language_level)],
-        QUESTION: [MessageHandler(Filters.TEXT & ~Filters.COMMAND, question)],
-        FILE_UPLOAD: [
-            CallbackQueryHandler(file_upload),
-            MessageHandler(Filters.Document.ALL | Filters.PHOTO | Filters.VIDEO, save_file)
+        FIELD: [CallbackQueryHandler(select_field, pattern="^consult_")],
+        DETAILS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_details)],
+        CONFIRM: [
+            CallbackQueryHandler(confirm_consultation, pattern="^confirm_consult$"),
+            CallbackQueryHandler(cancel_consultation, pattern="^cancel_consult$"),
         ],
     },
-    fallbacks=[CommandHandler("cancel", cancel)],
-    per_message=True  # تغییر به True برای رفع PTBUserWarning
+    fallbacks=[CommandHandler("cancel", cancel_consultation)],
 )
+
+# Define handlers for main.py
+handlers = [consult_conv_handler]
