@@ -1,17 +1,16 @@
 # بخش: زیرساخت
 # فایل: db.py
 
-from sqlalchemy import create_engine, Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config import DATABASE_URL
-import logging
+import bcrypt
 
 Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
-    
     user_id = Column(Integer, primary_key=True)
     first_name = Column(String)
     family_name = Column(String)
@@ -19,12 +18,29 @@ class User(Base):
     email = Column(String)
     field_of_study = Column(String)
     country = Column(String)
-    isee = Column(Float, nullable=True)
-    points = Column(Integer, default=0)  # New field for gamification points
+    isee = Column(String)
+    points = Column(Integer, default=0)
+
+class Admin(Base):
+    __tablename__ = "admins"
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+
+    def set_password(self, password: str) -> None:
+        """
+        Hash and set the admin password.
+        """
+        self.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    def check_password(self, password: str) -> bool:
+        """
+        Check if the provided password matches the stored hash.
+        """
+        return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
 
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():
@@ -33,5 +49,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-logging.info("Database initialized successfully")
