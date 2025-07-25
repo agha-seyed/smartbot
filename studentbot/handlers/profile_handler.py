@@ -11,16 +11,18 @@ def load_texts(lang):
 # States (used by cmd_start)
 NAME, FAMILY_NAME, AGE, EMAIL, FIELD_OF_STUDY, COUNTRY = range(6)
 
-async def start_profile_flow(update: Update, context: CallbackContext):
+async def start_profile_flow(update: Update, context: CallbackContext, first_name: str):
     """Starts the profile creation flow after language selection."""
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
 
+    welcome_message = texts["profile_creation_intro"].format(first_name=first_name)
+
     if update.callback_query:
-        await update.callback_query.message.reply_text(sanitize_markdown(texts["profile_creation_intro"]))
+        await update.callback_query.message.reply_text(sanitize_markdown(welcome_message))
         await update.callback_query.message.reply_text(sanitize_markdown(texts["profile_name"]))
     else:
-        await update.message.reply_text(sanitize_markdown(texts["profile_creation_intro"]))
+        await update.message.reply_text(sanitize_markdown(welcome_message))
         await update.message.reply_text(sanitize_markdown(texts["profile_name"]))
 
     return NAME

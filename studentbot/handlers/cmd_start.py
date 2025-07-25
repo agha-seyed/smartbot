@@ -109,6 +109,7 @@ async def language_select_and_start_registration(update: Update, context: Callba
     """Handles language selection and transitions to the registration process."""
     query = update.callback_query
     await query.answer()
+    user = query.from_user
     lang_code = query.data.split('_')[1]
     context.user_data['lang'] = lang_code
 
@@ -116,7 +117,7 @@ async def language_select_and_start_registration(update: Update, context: Callba
     await query.edit_message_text(text=all_texts[lang_code]['welcome_message'], parse_mode=ParseMode.HTML)
 
     # Start the profile flow
-    return await profile_handler.start_profile_flow(update, context)
+    return await profile_handler.start_profile_flow(update, context, user.first_name)
 
 from utils.db import save_user
 

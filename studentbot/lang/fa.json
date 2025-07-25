@@ -14,7 +14,7 @@
     "menu_profile": "👤 پروفایل من",
     "menu_settings": "⚙️ تنظیمات",
     "menu_apps_guide": "📲 اپ‌ها و راهنمای ورود",
-    "profile_creation_intro": "بیایید پروفایل شما را بسازیم.",
+    "profile_creation_intro": "سلام {first_name} عزیز! بیایید پروفایل شما را بسازیم.",
     "profile_name": "نام شما چیست؟",
     "profile_family_name": "نام خانوادگی شما چیست؟",
     "profile_age": "سن شما چند است؟",

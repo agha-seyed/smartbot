@@ -14,7 +14,7 @@
     "menu_profile": "👤 My Profile",
     "menu_settings": "⚙️ Settings",
     "menu_apps_guide": "📲 Apps & Entry Guide",
-    "profile_creation_intro": "Let's create your profile.",
+    "profile_creation_intro": "Hello {first_name}! Let's create your profile.",
     "profile_name": "What is your name?",
     "profile_family_name": "What is your family name?",
     "profile_age": "How old are you?",
