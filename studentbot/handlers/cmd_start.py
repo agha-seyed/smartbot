@@ -155,8 +155,4 @@ onboarding_conv_handler = ConversationHandler(
         COUNTRY: [MessageHandler(filters.TEXT & ~filters.COMMAND, registration_complete)],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
-    map_to_parent={
-        # After registration is complete, end the conversation
-        ConversationHandler.END: ConversationHandler.END
-    }
 )

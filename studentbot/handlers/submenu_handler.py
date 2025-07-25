@@ -126,6 +126,7 @@ USER_FEEDBACK = range(1)
 
 async def user_feedback_menu(update: Update, context: CallbackContext):
     """Shows the user feedback menu."""
+    logger.info(f"User {update.effective_user.id} requested the user feedback menu.")
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "fa")

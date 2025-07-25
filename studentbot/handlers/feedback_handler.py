@@ -26,11 +26,14 @@ async def cancel(update: Update, context: CallbackContext):
     await update.message.reply_text(texts.get("conversation_cancelled", "Operation cancelled."))
     return ConversationHandler.END
 
+from telegram.ext import CallbackQueryHandler
+
+USER_FEEDBACK = range(1)
+
 feedback_conv_handler = ConversationHandler(
-    entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, get_feedback)],
-    states={},
-    fallbacks=[MessageHandler(filters.COMMAND, cancel)],
-    map_to_parent={
-        ConversationHandler.END: ConversationHandler.END,
+    entry_points=[CallbackQueryHandler(user_feedback_menu, pattern='^user_feedback$')],
+    states={
+        USER_FEEDBACK: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_feedback)],
     },
+    fallbacks=[CommandHandler("cancel", cancel)],
 )
