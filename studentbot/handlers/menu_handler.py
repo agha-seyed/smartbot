@@ -1,84 +1,125 @@
-from telegram import Update
-from telegram.ext import CallbackContext, CallbackQueryHandler
-from config import logger
-from . import (
-    profile_handler,
-    isee_handler,
-    consult_handler,
-    question_handler,
-    weather_handler,
-    apps_guide_handler,
-    search_handler,
-    file_handler,
-    gamification_handler,
-    location_handler,
-    live_chat_handler,
+# بخش: منوها و رابط کاربری
+# فایل: menu_handler.py
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
 )
+from config import logger
+from utils.db import get_db, User
+from sqlalchemy.orm import Session
 
-def feature_with_points(handler, points=5):
-    """Wrapper to add points for using a feature."""
-    async def wrapper(update: Update, context: CallbackContext):
-        user_id = update.effective_user.id
-        logger.info(f"User {user_id} used feature {handler.__name__} and got {points} points.")
-        gamification_handler.add_points(user_id, points)
-        await handler(update, context)
-    return wrapper
+def load_texts(lang: str) -> dict:
+    """
+    Load language-specific texts from JSON files.
+    """
+    try:
+        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Language file lang/{lang}.json not found.")
+        return {}
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in lang/{lang}.json.")
+        return {}
 
-async def profile_button(update: Update, context: CallbackContext):
-    """Handles the 'Profile' button press."""
-    await profile_handler.show_profile(update, context)
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Show the main menu.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} requested main menu.")
 
-async def isee_button(update: Update, context: CallbackContext):
-    """Handles the 'ISEE' button press."""
-    await isee_handler.start_isee_calculation(update, context)
+    # Check if user has a profile
+    db: Session = next(get_db())
+    user = db.query(User).filter_by(user_id=user_id).first()
+    if not user:
+        await update.message.reply_text(
+            texts.get("no_profile", "Please create your profile first using /profile.")
+        )
+        return
 
-async def consult_button(update: Update, context: CallbackContext):
-    """Handles the 'Consult' button press."""
-    await consult_handler.start_consult(update, context)
+    keyboard = [
+        [InlineKeyboardButton(texts.get("menu_profile", "Profile"), callback_data="menu_profile")],
+        [InlineKeyboardButton(texts.get("menu_search", "Search"), callback_data="menu_search")],
+        [InlineKeyboardButton(texts.get("menu_apps", "Apps"), callback_data="menu_apps")],
+        [InlineKeyboardButton(texts.get("menu_points", "Points"), callback_data="menu_points")],
+        [InlineKeyboardButton(texts.get("menu_leaderboard", "Leaderboard"), callback_data="menu_leaderboard")],
+        [InlineKeyboardButton(texts.get("menu_question", "Question"), callback_data="menu_question")],
+        [InlineKeyboardButton(texts.get("menu_consult", "Consult"), callback_data="menu_consult")],
+        [InlineKeyboardButton(texts.get("menu_weather", "Weather"), callback_data="menu_weather")],
+        [InlineKeyboardButton(texts.get("menu_isee", "ISEE"), callback_data="menu_isee")],
+        [InlineKeyboardButton(texts.get("menu_location", "Location"), callback_data="menu_location")],
+        [InlineKeyboardButton(texts.get("menu_feedback", "Feedback"), callback_data="menu_feedback")]
+    ]
 
-async def question_button(update: Update, context: CallbackContext):
-    """Handles the 'Question' button press."""
-    await question_handler.start_question(update, context)
+    # Add admin options if user is logged in as admin
+    if context.user_data.get("is_admin", False):
+        keyboard.append([InlineKeyboardButton(texts.get("menu_admin", "Admin Panel"), callback_data="menu_admin")])
+        keyboard.append([InlineKeyboardButton(texts.get("menu_login", "Admin Login"), callback_data="menu_login")])
 
-async def weather_button(update: Update, context: CallbackContext):
-    """Handles the 'Weather' button press."""
-    await weather_handler.show_weather(update, context)
+    keyboard.append([InlineKeyboardButton(texts.get("cancel", "Cancel"), callback_data="cancel_menu")])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        texts.get("menu_prompt", "Please select an option from the main menu:"),
+        reply_markup=reply_markup
+    )
 
-async def apps_guide_button(update: Update, context: CallbackContext):
-    """Handles the 'Apps Guide' button press."""
-    await apps_guide_handler.show_apps_guide(update, context)
+async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle main menu selections.
+    """
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    option = query.data
+    logger.info(f"User {user_id} selected menu option: {option}")
 
-async def search_button(update: Update, context: CallbackContext):
-    """Handles the 'Search' button press."""
-    await search_handler.start_search(update, context)
+    if option == "cancel_menu":
+        await query.message.reply_text(
+            texts.get("conversation_cancelled", "Operation cancelled.")
+        )
+        return
 
-async def file_button(update: Update, context: CallbackContext):
-    """Handles the 'File' button press."""
-    await file_handler.show_file_menu(update, context)
+    commands = {
+        "menu_profile": "/profile",
+        "menu_search": "/search",
+        "menu_apps": "/apps",
+        "menu_points": "/points",
+        "menu_leaderboard": "/leaderboard",
+        "menu_question": "/ask",
+        "menu_consult": "/consult",
+        "menu_weather": "/weather",
+        "menu_isee": "/isee",
+        "menu_location": "/location",
+        "menu_feedback": "/feedback",
+        "menu_admin": "/admin",
+        "menu_login": "/login"
+    }
 
-async def gamification_button(update: Update, context: CallbackContext):
-    """Handles the 'Gamification' button press."""
-    await gamification_handler.show_gamification_profile(update, context)
+    if option in commands:
+        await query.message.reply_text(
+            texts.get("menu_prompt", "Please select an option from the main menu:") + f"\nExecuting {commands[option]}..."
+        )
+        context.user_data["next_command"] = commands[option]
+        # Simulate command execution
+        update.message.text = commands[option]
+        await context.application.process_update(update)
+    else:
+        await query.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
+        )
 
-async def location_button(update: Update, context: CallbackContext):
-    """Handles the 'Location' button press."""
-    await location_handler.show_location_menu(update, context)
-
-async def live_chat_button(update: Update, context: CallbackContext):
-    """Handles the 'Live Chat' button press."""
-    await live_chat_handler.start_chat(update, context)
-
-# --- Callback Query Handlers ---
-menu_handlers = [
-    CallbackQueryHandler(feature_with_points(profile_button), pattern='^profile$'),
-    CallbackQueryHandler(feature_with_points(isee_button), pattern='^isee$'),
-    CallbackQueryHandler(feature_with_points(consult_button), pattern='^consult$'),
-    CallbackQueryHandler(feature_with_points(question_button), pattern='^question$'),
-    CallbackQueryHandler(feature_with_points(weather_button), pattern='^weather$'),
-    CallbackQueryHandler(feature_with_points(apps_guide_button), pattern='^apps_guide$'),
-    CallbackQueryHandler(feature_with_points(search_button), pattern='^search$'),
-    CallbackQueryHandler(feature_with_points(file_button), pattern='^file$'),
-    CallbackQueryHandler(feature_with_points(gamification_button, points=0), pattern='^gamification$'), # No points for checking points
-    CallbackQueryHandler(feature_with_points(location_button), pattern='^location$'),
-    CallbackQueryHandler(feature_with_points(live_chat_button), pattern='^live_chat$'),
+# Define handlers for main.py
+handlers = [
+    CommandHandler("menu", show_main_menu),
+    CommandHandler("start", show_main_menu),  # Override /start to show menu
+    CallbackQueryHandler(menu_callback, pattern="^menu_|^cancel_menu$")
 ]
