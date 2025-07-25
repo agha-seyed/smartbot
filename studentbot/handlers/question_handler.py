@@ -1,5 +1,5 @@
 # بخش: Handlerهای اصلی
-# فایل: question_handler.py
+# فایل: question_handler.py (نسخه بهبودیافته)
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -12,7 +12,9 @@ from telegram.ext import (
     filters,
 )
 from config import logger, ADMIN_CHAT_ID
-from utils.gsheets import save_question
+from utils.gsheets import append_to_sheet
+from utils.db import get_db, User
+from sqlalchemy.orm import Session
 from datetime import datetime
 import json
 
@@ -47,6 +49,24 @@ async def start_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     logger.info(f"User {user_id} started question submission.")
+
+    # Check if user has a profile
+    db: Session = next(get_db())
+    user = db.query(User).filter_by(user_id=user_id).first()
+    if not user:
+        await update.message.reply_text(
+            texts.get("no_profile", "Please create your profile first using /profile.")
+        )
+        return ConversationHandler.END
+
+    context.user_data["user_profile"] = {
+        "first_name": user.first_name,
+        "family_name": user.family_name,
+        "age": user.age,
+        "email": user.email,
+        "field_of_study": user.field_of_study,
+        "country": user.country
+    }
 
     await update.message.reply_text(
         texts.get("question_intro", "Please enter your question:")
@@ -86,7 +106,7 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Save the question to Google Sheets, notify admin, and end the conversation.
+    Save the question with profile data to Google Sheets, notify admin, and end the conversation.
     """
     query = update.callback_query
     await query.answer()
@@ -94,17 +114,35 @@ async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     question = context.user_data.get("question")
+    profile = context.user_data.get("user_profile")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"User {user_id} confirmed question.")
 
     try:
-        # Save question to Google Sheets
-        save_question(user_id, question, timestamp)
-        
+        # Prepare data for Google Sheets
+        data = [
+            user_id,
+            profile["first_name"] or "",
+            profile["family_name"] or "",
+            profile["age"] or "",
+            profile["email"] or "",
+            profile["field_of_study"] or "",
+            profile["country"] or "",
+            question,
+            "",  # Empty Answer column
+            timestamp
+        ]
+        append_to_sheet("StudentBotQuestions", data)
+
         # Notify admin
         admin_message = (
             texts.get("question_admin_notify", "New question submitted:\n")
             + f"User ID: {user_id}\n"
+            + f"Name: {profile['first_name']} {profile['family_name']}\n"
+            + f"Age: {profile['age']}\n"
+            + f"Email: {profile['email']}\n"
+            + f"Field of Study: {profile['field_of_study']}\n"
+            + f"Country: {profile['country']}\n"
             + f"Question: {question}\n"
             + f"Time: {timestamp}"
         )
@@ -112,7 +150,7 @@ async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             chat_id=ADMIN_CHAT_ID,
             text=admin_message
         )
-        
+
         await query.message.reply_text(
             texts.get("question_submitted", "Your question has been submitted successfully!")
         )
@@ -124,6 +162,7 @@ async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     # Clear question data
     context.user_data.pop("question", None)
+    context.user_data.pop("user_profile", None)
     return ConversationHandler.END
 
 async def cancel_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -141,6 +180,7 @@ async def cancel_question(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         texts.get("conversation_cancelled", "Question submission cancelled.")
     )
     context.user_data.pop("question", None)
+    context.user_data.pop("user_profile", None)
     return ConversationHandler.END
 
 # Define ConversationHandler
