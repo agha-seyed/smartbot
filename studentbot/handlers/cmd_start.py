@@ -53,6 +53,29 @@ async def show_main_menu(update: Update, context: CallbackContext):
     texts = all_texts[lang_code]
     keyboard = [
         [
+            InlineKeyboardButton(texts["profile_button"], callback_data='profile'),
+            InlineKeyboardButton(texts["isee_button"], callback_data='isee')
+        ],
+        [
+            InlineKeyboardButton(texts["consult_button"], callback_data='consult'),
+            InlineKeyboardButton(texts["question_button"], callback_data='question')
+        ],
+        [
+            InlineKeyboardButton(texts["weather_button"], callback_data='weather'),
+            InlineKeyboardButton(texts["apps_guide_button"], callback_data='apps_guide')
+        ],
+        [
+            InlineKeyboardButton(texts["search_button"], callback_data='search'),
+            InlineKeyboardButton(texts["file_button"], callback_data='file')
+        ],
+        [
+            InlineKeyboardButton(texts["gamification_button"], callback_data='gamification'),
+            InlineKeyboardButton(texts["location_button"], callback_data='location')
+        ],
+        [
+            InlineKeyboardButton(texts["live_chat_button"], callback_data='live_chat')
+        ],
+        [
             InlineKeyboardButton(texts["scholarships_button"], callback_data='scholarships'),
             InlineKeyboardButton(texts["migration_steps_button"], callback_data='migration_steps')
         ],
