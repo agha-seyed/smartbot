@@ -1,5 +1,5 @@
 # بخش: Handlerهای اصلی
-# فایل: question_handler.py (نسخه بهبودیافته)
+# فایل: question_handler.py
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -14,6 +14,7 @@ from telegram.ext import (
 from config import logger, ADMIN_CHAT_ID
 from utils.gsheets import append_to_sheet
 from utils.db import get_db, User
+from utils.gamification import add_points  # Import the add_points function
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
@@ -106,7 +107,7 @@ async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Save the question with profile data to Google Sheets, notify admin, and end the conversation.
+    Save the question with profile data to Google Sheets, notify admin, add points, and end the conversation.
     """
     query = update.callback_query
     await query.answer()
@@ -119,7 +120,7 @@ async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     logger.info(f"User {user_id} confirmed question.")
 
     try:
-        # Prepare data for Google Sheets
+        # Save to Google Sheets
         data = [
             user_id,
             profile["first_name"] or "",
@@ -133,6 +134,10 @@ async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             timestamp
         ]
         append_to_sheet("StudentBotQuestions", data)
+
+        # Add points for asking a question
+        db: Session = next(get_db())
+        add_points(user_id, 10, db)  # Add 10 points
 
         # Notify admin
         admin_message = (
@@ -152,7 +157,7 @@ async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         )
 
         await query.message.reply_text(
-            texts.get("question_submitted", "Your question has been submitted successfully!")
+            texts.get("question_submitted", "Your question has been submitted successfully! You earned 10 points.")
         )
     except Exception as e:
         logger.error(f"Error saving question for user {user_id}: {e}")
