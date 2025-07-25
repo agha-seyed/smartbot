@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler
 from utils.db import SessionLocal, Gamification
+from config import logger
 import json
 
 def load_texts(lang):
@@ -8,6 +9,7 @@ def load_texts(lang):
         return json.load(f)
 
 def add_points(user_id, points_to_add):
+    logger.info(f"Adding {points_to_add} points to user {user_id}.")
     db = SessionLocal()
     user_gamification = db.query(Gamification).filter(Gamification.user_id == user_id).first()
     if not user_gamification:
@@ -17,7 +19,11 @@ def add_points(user_id, points_to_add):
     db.commit()
     db.close()
 
-async def show_profile(update: Update, context: CallbackContext):
+async def show_gamification_profile(update: Update, context: CallbackContext):
+    """Shows the user's gamification profile."""
+    logger.info(f"User {update.effective_user.id} requested gamification profile.")
+    query = update.callback_query
+    await query.answer()
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     user_id = update.effective_user.id
@@ -33,6 +39,6 @@ async def show_profile(update: Update, context: CallbackContext):
     else:
         profile_text = texts["gamification_no_profile"]
 
-    await update.message.reply_text(profile_text)
+    await query.message.reply_text(profile_text)
 
-gamification_profile_handler = CommandHandler("gamification", show_profile)
+gamification_profile_handler = CallbackQueryHandler(show_gamification_profile, pattern='^gamification$')

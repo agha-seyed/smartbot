@@ -1,6 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler, CallbackContext, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 from utils.text_formatter import sanitize_markdown
+from config import logger
 import json
 
 def load_texts(lang):
@@ -10,7 +11,9 @@ def load_texts(lang):
 # Stages
 FAMILY_MEMBERS, ANNUAL_INCOME, PROPERTY_OWNERSHIP, PROPERTY_SIZE = range(4)
 
-async def start_isee(update: Update, context: CallbackContext):
+async def start_isee_calculation(update: Update, context: CallbackContext):
+    """Starts the ISEE calculation conversation."""
+    logger.info(f"User {update.effective_user.id} started ISEE calculation.")
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "fa")
@@ -58,6 +61,7 @@ async def property_size(update: Update, context: CallbackContext):
 
 
 async def calculate_and_show_isee(update, context):
+    logger.info(f"User {update.effective_user.id} calculating ISEE.")
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     isee_data = context.user_data['isee']
@@ -80,6 +84,7 @@ async def calculate_and_show_isee(update, context):
         household_coefficient = 2.85
 
     isee = (annual_income + property_value) / household_coefficient
+    logger.info(f"User {update.effective_user.id} ISEE calculated: {isee}")
 
     scholarship_status = texts["scholarship_none"]
     if isee <= 27948.60:
@@ -112,7 +117,7 @@ async def cancel(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 isee_conv_handler = ConversationHandler(
-    entry_points=[CallbackQueryHandler(start_isee, pattern='^isee_calculator$')],
+    entry_points=[CallbackQueryHandler(start_isee_calculation, pattern='^isee$')],
     states={
         FAMILY_MEMBERS: [MessageHandler(filters.TEXT & ~filters.COMMAND, family_members)],
         ANNUAL_INCOME: [MessageHandler(filters.TEXT & ~filters.COMMAND, annual_income)],

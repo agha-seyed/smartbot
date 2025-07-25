@@ -39,6 +39,13 @@ class Gamification(Base):
     points = Column(Integer, default=0)
     badges = Column(String, default="")
 
+class Feedback(Base):
+    __tablename__ = "feedback"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer)
+    feedback = Column(String)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
 Base.metadata.create_all(bind=engine)
 
 def get_db():
@@ -63,3 +70,15 @@ def save_consultation(consultation_data):
     db.commit()
     db.refresh(db_consultation)
     return db_consultation
+
+def get_all_users():
+    db = next(get_db())
+    return db.query(User).all()
+
+def save_feedback(feedback_data):
+    db = next(get_db())
+    db_feedback = Feedback(**feedback_data)
+    db.add(db_feedback)
+    db.commit()
+    db.refresh(db_feedback)
+    return db_feedback

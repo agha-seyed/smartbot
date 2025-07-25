@@ -8,7 +8,8 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-from . import profile_handler  # Import the profile handler
+from . import profile_handler, gamification_handler
+from config import logger
 import json
 
 # --- Load all language texts ---
@@ -30,6 +31,7 @@ NAME, FAMILY_NAME, AGE, EMAIL, FIELD_OF_STUDY, COUNTRY = profile_handler.NAME, p
 # --- Welcome Message Handler ---
 async def start(update: Update, context: CallbackContext):
     """Sends the initial welcome message and language selection."""
+    logger.info(f"User {update.effective_user.id} started the bot.")
     welcome_text = (
         f"{all_texts['fa']['welcome_message']}\n\n"
         f"{all_texts['en']['welcome_message']}\n\n"
@@ -52,7 +54,48 @@ async def show_main_menu(update: Update, context: CallbackContext):
     lang_code = context.user_data.get('lang', 'fa')
     texts = all_texts[lang_code]
     keyboard = [
-        # ... (menu buttons as before) ...
+        [
+            InlineKeyboardButton(texts["profile_button"], callback_data='profile'),
+            InlineKeyboardButton(texts["isee_button"], callback_data='isee')
+        ],
+        [
+            InlineKeyboardButton(texts["consult_button"], callback_data='consult'),
+            InlineKeyboardButton(texts["question_button"], callback_data='question')
+        ],
+        [
+            InlineKeyboardButton(texts["weather_button"], callback_data='weather'),
+            InlineKeyboardButton(texts["apps_guide_button"], callback_data='apps_guide')
+        ],
+        [
+            InlineKeyboardButton(texts["search_button"], callback_data='search'),
+            InlineKeyboardButton(texts["file_button"], callback_data='file')
+        ],
+        [
+            InlineKeyboardButton(texts["gamification_button"], callback_data='gamification'),
+            InlineKeyboardButton(texts["location_button"], callback_data='location')
+        ],
+        [
+            InlineKeyboardButton(texts["live_chat_button"], callback_data='live_chat')
+        ],
+        [
+            InlineKeyboardButton(texts["scholarships_button"], callback_data='scholarships'),
+            InlineKeyboardButton(texts["migration_steps_button"], callback_data='migration_steps')
+        ],
+        [
+            InlineKeyboardButton(texts["housing_button"], callback_data='housing'),
+            InlineKeyboardButton(texts["student_life_button"], callback_data='student_life')
+        ],
+        [
+            InlineKeyboardButton(texts["universities_button"], callback_data='universities'),
+            InlineKeyboardButton(texts["tools_button"], callback_data='tools')
+        ],
+        [
+            InlineKeyboardButton(texts["language_courses_button"], callback_data='language_courses'),
+            InlineKeyboardButton(texts["university_news_button"], callback_data='university_news')
+        ],
+        [
+            InlineKeyboardButton(texts["user_feedback_button"], callback_data='user_feedback')
+        ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -68,18 +111,25 @@ async def language_select_and_start_registration(update: Update, context: Callba
     """Handles language selection and transitions to the registration process."""
     query = update.callback_query
     await query.answer()
+    user = query.from_user
     lang_code = query.data.split('_')[1]
     context.user_data['lang'] = lang_code
+    logger.info(f"User {user.id} selected language: {lang_code}")
 
     # Clean up the language selection message
     await query.edit_message_text(text=all_texts[lang_code]['welcome_message'], parse_mode=ParseMode.HTML)
 
     # Start the profile flow
-    return await profile_handler.start_profile_flow(update, context)
+    return await profile_handler.start_profile_flow(update, context, user.first_name)
+
+from utils.db import save_user
 
 async def registration_complete(update: Update, context: CallbackContext):
     """Called after the last piece of profile info is provided."""
+    logger.info(f"User {update.effective_user.id} completed registration.")
     await profile_handler.country(update, context) # Process the final input
+    save_user(context.user_data['profile'])
+    gamification_handler.add_points(update.effective_user.id, 10)
     await show_main_menu(update, context)
     return ConversationHandler.END
 

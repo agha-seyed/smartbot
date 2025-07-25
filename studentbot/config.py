@@ -14,3 +14,12 @@ BASE_URL = os.getenv("BASE_URL")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 PORT = os.getenv("PORT", 10000)
 QUESTIONS_SHEET_NAME = os.getenv("QUESTIONS_SHEET_NAME")
+
+import logging
+
+# Logging configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)

@@ -1,41 +1,55 @@
-from telegram import Update
-from telegram.ext import CallbackContext, CommandHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackContext, CallbackQueryHandler
+from config import logger
 import json
+import os
 
 def load_texts(lang):
     with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
         return json.load(f)
 
-async def send_pdf(update: Update, context: CallbackContext):
+def load_files():
+    with open('studentbot/files.json', 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+async def show_file_menu(update: Update, context: CallbackContext):
+    """Shows the file menu."""
+    logger.info(f"User {update.effective_user.id} requested the file menu.")
+    query = update.callback_query
+    await query.answer()
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    files = load_files()
+
+    keyboard = []
+    for pdf_file in files.get("pdfs", []):
+        keyboard.append([InlineKeyboardButton(pdf_file, callback_data=f"file_pdf_{pdf_file}")])
+    for video_file in files.get("videos", []):
+        keyboard.append([InlineKeyboardButton(video_file, callback_data=f"file_video_{video_file}")])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.message.reply_text(texts.get("file_menu_prompt", "Please select a file:"), reply_markup=reply_markup)
+
+async def send_file(update: Update, context: CallbackContext):
+    """Sends the selected file."""
+    query = update.callback_query
+    await query.answer()
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
 
-    pdf_id = context.args[0] if context.args else None
-    if not pdf_id:
-        await update.message.reply_text(texts["pdf_id_missing"])
-        return
+    file_type, file_name = query.data.split('_')[1:]
+    file_path = f"assets/{file_type}s/{file_name}"
+    logger.info(f"User {update.effective_user.id} requested file: {file_path}")
 
     try:
-        with open(f"assets/pdfs/{pdf_id}.pdf", "rb") as pdf_file:
-            await context.bot.send_document(chat_id=update.effective_chat.id, document=pdf_file)
+        with open(file_path, "rb") as file:
+            if file_type == 'pdf':
+                await context.bot.send_document(chat_id=update.effective_chat.id, document=file)
+            elif file_type == 'video':
+                await context.bot.send_video(chat_id=update.effective_chat.id, video=file)
     except FileNotFoundError:
-        await update.message.reply_text(texts["pdf_not_found"])
+        logger.error(f"File not found: {file_path}")
+        await query.message.reply_text(texts.get("file_not_found", "File not found."))
 
-async def send_video(update: Update, context: CallbackContext):
-    lang = context.user_data.get("lang", "fa")
-    texts = load_texts(lang)
-
-    video_id = context.args[0] if context.args else None
-    if not video_id:
-        await update.message.reply_text(texts["video_id_missing"])
-        return
-
-    try:
-        with open(f"assets/videos/{video_id}.mp4", "rb") as video_file:
-            await context.bot.send_video(chat_id=update.effective_chat.id, video=video_file)
-    except FileNotFoundError:
-        await update.message.reply_text(texts["video_not_found"])
-
-
-pdf_handler = CommandHandler("pdf", send_pdf)
-video_handler = CommandHandler("video", send_video)
+file_menu_handler = CallbackQueryHandler(show_file_menu, pattern='^file$')
+file_sender_handler = CallbackQueryHandler(send_file, pattern='^file_')

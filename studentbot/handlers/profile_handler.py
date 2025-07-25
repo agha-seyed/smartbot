@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from utils.db import save_user
 from utils.text_formatter import sanitize_markdown
+from config import logger
 import json
 
 def load_texts(lang):
@@ -11,16 +12,19 @@ def load_texts(lang):
 # States (used by cmd_start)
 NAME, FAMILY_NAME, AGE, EMAIL, FIELD_OF_STUDY, COUNTRY = range(6)
 
-async def start_profile_flow(update: Update, context: CallbackContext):
+async def start_profile_flow(update: Update, context: CallbackContext, first_name: str):
     """Starts the profile creation flow after language selection."""
+    logger.info(f"User {update.effective_user.id} starting profile flow.")
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
 
+    welcome_message = texts["profile_creation_intro"].format(first_name=first_name)
+
     if update.callback_query:
-        await update.callback_query.message.reply_text(sanitize_markdown(texts["profile_creation_intro"]))
+        await update.callback_query.message.reply_text(sanitize_markdown(welcome_message))
         await update.callback_query.message.reply_text(sanitize_markdown(texts["profile_name"]))
     else:
-        await update.message.reply_text(sanitize_markdown(texts["profile_creation_intro"]))
+        await update.message.reply_text(sanitize_markdown(welcome_message))
         await update.message.reply_text(sanitize_markdown(texts["profile_name"]))
 
     return NAME
@@ -74,3 +78,23 @@ async def country(update: Update, context: CallbackContext):
     # after this function completes.
     await update.message.reply_text(sanitize_markdown(texts["profile_complete"]))
     return -1 # End of this sub-flow, return to parent handler
+
+async def show_profile(update: Update, context: CallbackContext):
+    """Displays the user's profile information."""
+    logger.info(f"User {update.effective_user.id} requested their profile.")
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    profile = context.user_data.get('profile', {})
+    if profile:
+        profile_text = f"""
+*Name:* {profile.get('name', 'N/A')}
+*Family Name:* {profile.get('family_name', 'N/A')}
+*Age:* {profile.get('age', 'N/A')}
+*Email:* {profile.get('email', 'N/A')}
+*Field of Study:* {profile.get('field_of_study', 'N/A')}
+*Country:* {profile.get('country', 'N/A')}
+        """
+        await update.callback_query.message.reply_text(sanitize_markdown(profile_text))
+    else:
+        logger.warning(f"User {update.effective_user.id} has no profile.")
+        await update.callback_query.message.reply_text(sanitize_markdown(texts.get("profile_not_found", "Profile not found.")))
