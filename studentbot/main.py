@@ -1,74 +1,77 @@
-from telegram.ext import Application
-from config import TELEGRAM_TOKEN, BASE_URL, WEBHOOK_SECRET, PORT
-from handlers import (
-    cmd_start,
-    profile_handler,
-    isee_handler,
-    consult_handler,
-    question_handler,
-    weather_handler,
-    apps_guide_handler,
-    menu_handler,
-    search_handler,
-    file_handler,
-    gamification_handler,
-    location_handler,
-    live_chat_handler,
-    admin_handler,
-    submenu_handler,
-    feedback_handler,
-)
+# بخش: جریان اصلی ربات
+# فایل: main.py
 
-def main() -> None:
-    """Run the bot."""
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ConversationHandler, filters
+from config import BOT_TOKEN, BASE_URL, WEBHOOK_SECRET, PORT, logger
+import os
+import importlib
+import glob
 
-    # --- Feature Handlers ---
-    app.add_handler(isee_handler.isee_conv_handler)
-    app.add_handler(consult_handler.consult_conv_handler)
-    app.add_handler(question_handler.question_conv_handler)
-    app.add_handler(search_handler.search_handler)
+def load_handlers():
+    """
+    Dynamically load all handler modules from the handlers directory.
 
-    for handler in menu_handler.menu_handlers:
-        app.add_handler(handler)
+    Returns:
+        list: List of handler objects to be registered.
+    """
+    handlers = []
+    handlers_dir = os.path.join(os.path.dirname(__file__), "handlers")
+    for handler_file in glob.glob(os.path.join(handlers_dir, "*.py")):
+        if handler_file.endswith("__init__.py"):
+            continue
+        module_name = os.path.basename(handler_file)[:-3]  # Remove .py
+        try:
+            module = importlib.import_module(f"handlers.{module_name}")
+            # Assume each handler module defines a list or single handler object
+            if hasattr(module, "handlers"):
+                handlers.extend(module.handlers if isinstance(module.handlers, list) else [module.handlers])
+            elif hasattr(module, "handler"):
+                handlers.append(module.handler)
+            logger.info(f"Loaded handler module: {module_name}")
+        except ImportError as e:
+            logger.error(f"Error loading handler module {module_name}: {e}")
+    return handlers
 
-    app.add_handler(file_handler.file_menu_handler)
-    app.add_handler(file_handler.file_sender_handler)
-    app.add_handler(location_handler.location_menu_handler)
-    app.add_handler(location_handler.location_sender_handler)
+async def error_handler(update, context):
+    """Handle errors that occur during update processing."""
+    logger.error(f"Update {update} caused error: {context.error}")
+    if update and update.effective_chat:
+        try:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="An error occurred. Please try again later."
+            )
+        except Exception as e:
+            logger.error(f"Error sending error message: {e}")
 
-    app.add_handler(live_chat_handler.start_chat_handler)
-    app.add_handler(live_chat_handler.end_chat_handler)
-    app.add_handler(live_chat_handler.user_message_handler)
-    app.add_handler(live_chat_handler.admin_message_handler)
+def main():
+    """Initialize and run the Telegram bot with webhook."""
+    try:
+        # Initialize Application
+        app = Application.builder().token(BOT_TOKEN).build()
 
-    app.add_handler(admin_handler.admin_handler)
-    app.add_handler(admin_handler.add_file_handler)
-    app.add_handler(admin_handler.remove_file_handler)
-    app.add_handler(admin_handler.broadcast_handler)
-    app.add_handler(admin_handler.schedule_handler)
-    app.add_handler(admin_handler.poll_handler)
+        # Load and register handlers
+        handlers = load_handlers()
+        for handler in handlers:
+            app.add_handler(handler)
+            logger.info(f"Registered handler: {handler}")
 
-    for handler in admin_handler.admin_menu_handlers:
-        app.add_handler(handler)
+        # Add error handler
+        app.add_error_handler(error_handler)
 
-    for handler in submenu_handler.submenu_handlers:
-        app.add_handler(handler)
-
-    app.add_handler(feedback_handler.feedback_conv_handler)
-
-    # --- Core Onboarding Handler ---
-    app.add_handler(cmd_start.onboarding_conv_handler)
-
-
-    # Start the Bot
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=int(PORT),
-        secret_token=WEBHOOK_SECRET,
-        webhook_url=f"{BASE_URL}/{WEBHOOK_SECRET}",
-        url_path=WEBHOOK_SECRET,
-    )
+        # Set up webhook
+        webhook_url = f"{BASE_URL}/{WEBHOOK_SECRET}"
+        logger.info(f"Setting webhook to {webhook_url}")
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            secret_token=WEBHOOK_SECRET,
+            webhook_url=webhook_url
+        )
+        logger.info(f"Bot is running on port {PORT}")
+    except Exception as e:
+        logger.error(f"Error starting bot: {e}")
+        raise
 
 if __name__ == "__main__":
     main()
