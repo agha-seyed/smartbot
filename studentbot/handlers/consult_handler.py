@@ -1,5 +1,5 @@
 # بخش: Handlerهای اصلی
-# فایل: consult_handler.py
+# فایل: consult_handler.py (نسخه بهبودیافته)
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -14,6 +14,8 @@ from telegram.ext import (
 from config import logger, ADMIN_CHAT_ID
 from utils.redis_utils import cache_session, get_session
 from utils.gsheets import append_to_sheet
+from utils.db import get_db, User
+from sqlalchemy.orm import Session
 from datetime import datetime
 import json
 
@@ -48,6 +50,24 @@ async def start_consultation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     logger.info(f"User {user_id} started consultation request.")
+
+    # Check if user has a profile
+    db: Session = next(get_db())
+    user = db.query(User).filter_by(user_id=user_id).first()
+    if not user:
+        await update.message.reply_text(
+            texts.get("no_profile", "Please create your profile first using /profile.")
+        )
+        return ConversationHandler.END
+
+    context.user_data["user_profile"] = {
+        "first_name": user.first_name,
+        "family_name": user.family_name,
+        "age": user.age,
+        "email": user.email,
+        "field_of_study": user.field_of_study,
+        "country": user.country
+    }
 
     keyboard = [
         [InlineKeyboardButton(texts.get("consult_migration", "Migration"), callback_data="consult_migration")],
@@ -98,9 +118,16 @@ async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     logger.info(f"User {user_id} provided consultation details.")
 
     # Show confirmation message
+    profile = context.user_data["user_profile"]
     consult_summary = (
         f"{texts.get('consult_field', 'Field')}: {context.user_data['consult_field']}\n"
-        f"{texts.get('consult_details', 'Details')}: {details}"
+        f"{texts.get('consult_details', 'Details')}: {details}\n"
+        f"{texts.get('profile_name', 'Name')}: {profile['first_name']}\n"
+        f"{texts.get('profile_family_name', 'Family Name')}: {profile['family_name']}\n"
+        f"{texts.get('profile_age', 'Age')}: {profile['age']}\n"
+        f"{texts.get('profile_email', 'Email')}: {profile['email']}\n"
+        f"{texts.get('profile_field_of_study', 'Field of Study')}: {profile['field_of_study']}\n"
+        f"{texts.get('profile_country', 'Country')}: {profile['country']}"
     )
     keyboard = [
         [
@@ -126,12 +153,25 @@ async def confirm_consultation(update: Update, context: ContextTypes.DEFAULT_TYP
     texts = load_texts(lang)
     field = context.user_data.get("consult_field")
     details = context.user_data.get("consult_details")
+    profile = context.user_data.get("user_profile")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"User {user_id} confirmed consultation request.")
 
     try:
         # Save to Google Sheets
-        data = [user_id, field, details, timestamp]
+        data = [
+            user_id,
+            profile["first_name"] or "",
+            profile["family_name"] or "",
+            profile["age"] or "",
+            profile["email"] or "",
+            profile["field_of_study"] or "",
+            profile["country"] or "",
+            field,
+            details,
+            "",  # Empty Answer column
+            timestamp
+        ]
         append_to_sheet("StudentBotQuestions", data)
 
         # Save session to Redis
@@ -142,6 +182,11 @@ async def confirm_consultation(update: Update, context: ContextTypes.DEFAULT_TYP
         admin_message = (
             texts.get("consult_admin_notify", "New consultation request:\n")
             + f"User ID: {user_id}\n"
+            + f"Name: {profile['first_name']} {profile['family_name']}\n"
+            + f"Age: {profile['age']}\n"
+            + f"Email: {profile['email']}\n"
+            + f"Field of Study: {profile['field_of_study']}\n"
+            + f"Country: {profile['country']}\n"
             + f"Field: {field}\n"
             + f"Details: {details}\n"
             + f"Time: {timestamp}"
@@ -161,7 +206,7 @@ async def confirm_consultation(update: Update, context: ContextTypes.DEFAULT_TYP
         )
 
     # Clear consultation data
-    for key in ["consult_field", "consult_details"]:
+    for key in ["consult_field", "consult_details", "user_profile"]:
         context.user_data.pop(key, None)
 
     return ConversationHandler.END
@@ -182,7 +227,7 @@ async def cancel_consultation(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
 
     # Clear consultation data
-    for key in ["consult_field", "consult_details"]:
+    for key in ["consult_field", "consult_details", "user_profile"]:
         context.user_data.pop(key, None)
 
     return ConversationHandler.END
