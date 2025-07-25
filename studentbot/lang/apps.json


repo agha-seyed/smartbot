@@ -1,0 +1,79 @@
+{
+  "categories": [
+    {
+      "name": "academic",
+      "display_name": {
+        "en": "Academic Apps",
+        "fa": "اپلیکیشن‌های دانشگاهی",
+        "it": "App Accademiche"
+      },
+      "apps": [
+        {
+          "name": "Notion",
+          "description": {
+            "en": "Organize your study notes and tasks.",
+            "fa": "یادداشت‌ها و وظایف تحصیلی خود را سازماندهی کنید.",
+            "it": "Organizza le tue note di studio e attività."
+          },
+          "link": "https://www.notion.so/"
+        },
+        {
+          "name": "Google Scholar",
+          "description": {
+            "en": "Search for academic papers and research.",
+            "fa": "جستجوی مقالات و تحقیقات دانشگاهی.",
+            "it": "Cerca articoli accademici e ricerche."
+          },
+          "link": "https://scholar.google.com/"
+        }
+      ]
+    },
+    {
+      "name": "migration",
+      "display_name": {
+        "en": "Migration Apps",
+        "fa": "اپلیکیشن‌های مهاجرتی",
+        "it": "App per l'Immigrazione"
+      },
+      "apps": [
+        {
+          "name": "Immigration App",
+          "description": {
+            "en": "Guides for visa and immigration processes.",
+            "fa": "راهنمای فرآیندهای ویزا و مهاجرت.",
+            "it": "Guide per processi di visto e immigrazione."
+          },
+          "link": "https://example.com/immigration-app"
+        }
+      ]
+    },
+    {
+      "name": "language",
+      "display_name": {
+        "en": "Language Learning Apps",
+        "fa": "اپلیکیشن‌های یادگیری زبان",
+        "it": "App per l'Apprendimento delle Lingue"
+      },
+      "apps": [
+        {
+          "name": "Duolingo",
+          "description": {
+            "en": "Learn languages with fun exercises.",
+            "fa": "زبان را با تمرین‌های سرگرم‌کننده یاد بگیرید.",
+            "it": "Impara le lingue con esercizi divertenti."
+          },
+          "link": "https://www.duolingo.com/"
+        },
+        {
+          "name": "Babbel",
+          "description": {
+            "en": "Interactive language learning platform.",
+            "fa": "پلتفرم تعاملی یادگیری زبان.",
+            "it": "Piattaforma interattiva per l'apprendimento delle lingue."
+          },
+          "link": "https://www.babbel.com/"
+        }
+      ]
+    }
+  ]
+}
