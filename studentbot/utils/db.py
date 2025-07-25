@@ -1,84 +1,74 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-from datetime import datetime
-from config import DATABASE_URL
+# بخش: فایل‌های زیرساختی
+# فایل: db.py
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from config import logger
+import os
+from datetime import datetime
+
+# Validate DATABASE_URL
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    logger.error("DATABASE_URL environment variable is not set.")
+    raise EnvironmentError("DATABASE_URL environment variable is not set.")
+
+# Replace 'postgres://' with 'postgresql://' for SQLAlchemy compatibility
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Create SQLAlchemy engine
+try:
+    engine = create_engine(DATABASE_URL, echo=False)
+except Exception as e:
+    logger.error(f"Failed to create database engine: {e}")
+    raise
+
+# Create base class for models
 Base = declarative_base()
 
+# Session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# User model
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    family_name = Column(String)
-    age = Column(Integer)
-    email = Column(String, unique=True, index=True)
-    field_of_study = Column(String)
-    country = Column(String)
-    registration_date = Column(DateTime, default=datetime.utcnow)
 
-class Consultation(Base):
-    __tablename__ = "consultations"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer)
-    name = Column(String)
-    field = Column(String)
-    degree = Column(String)
-    destination = Column(String)
-    language_level = Column(String)
-    question = Column(String)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    status = Column(String, default="pending")
+    user_id = Column(Integer, unique=True, index=True, nullable=False)  # Telegram user ID
+    first_name = Column(String, nullable=True)
+    family_name = Column(String, nullable=True)
+    age = Column(Integer, nullable=True)
+    email = Column(String, nullable=True)
+    field_of_study = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-class Gamification(Base):
-    __tablename__ = "gamification"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, unique=True)
-    points = Column(Integer, default=0)
-    badges = Column(String, default="")
+    def __repr__(self):
+        return f"<User(user_id={self.user_id}, first_name={self.first_name})>"
 
-class Feedback(Base):
-    __tablename__ = "feedback"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer)
-    feedback = Column(String)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-
-Base.metadata.create_all(bind=engine)
+def init_db():
+    """Initialize the database by creating all tables."""
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully.")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+        raise
 
 def get_db():
+    """Provide a database session and ensure it is closed."""
     db = SessionLocal()
     try:
         yield db
+    except Exception as e:
+        logger.error(f"Database session error: {e}")
+        db.rollback()
+        raise
     finally:
         db.close()
 
-def save_user(user_data):
-    db = next(get_db())
-    db_user = User(**user_data)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-
-def save_consultation(consultation_data):
-    db = next(get_db())
-    db_consultation = Consultation(**consultation_data)
-    db.add(db_consultation)
-    db.commit()
-    db.refresh(db_consultation)
-    return db_consultation
-
-def get_all_users():
-    db = next(get_db())
-    return db.query(User).all()
-
-def save_feedback(feedback_data):
-    db = next(get_db())
-    db_feedback = Feedback(**feedback_data)
-    db.add(db_feedback)
-    db.commit()
-    db.refresh(db_feedback)
-    return db_feedback
+# Initialize database at startup
+init_db()
