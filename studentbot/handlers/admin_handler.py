@@ -12,25 +12,20 @@ from telegram.ext import (
     filters,
 )
 from config import logger, ADMIN_CHAT_ID
-from utils.gsheets import read_sheet, update_sheet
-from utils.db import get_db, User
+from utils.gsheets import read_sheet, update_sheet, append_to_sheet
+from utils.db import get_db, User, Admin
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
 import os
+import bcrypt
 
 # States for ConversationHandler
-ADMIN_MENU, ANSWER_QUESTION, ANSWER_TEXT, BROADCAST_MESSAGE, MANAGE_SCHOLARSHIPS, ADD_SCHOLARSHIP_NAME, ADD_SCHOLARSHIP_DESC_EN, ADD_SCHOLARSHIP_DESC_FA, ADD_SCHOLARSHIP_DESC_IT, ADD_SCHOLARSHIP_LINK, ADD_SCHOLARSHIP_COUNTRY, ADD_SCHOLARSHIP_FIELD, DELETE_SCHOLARSHIP, MANAGE_USER, MANAGE_USER_ACTION = range(10)
+LOGIN_USERNAME, LOGIN_PASSWORD, ADMIN_MENU, ANSWER_QUESTION, ANSWER_TEXT, BROADCAST_MESSAGE, MANAGE_SCHOLARSHIPS, ADD_SCHOLARSHIP_NAME, ADD_SCHOLARSHIP_DESC_EN, ADD_SCHOLARSHIP_DESC_FA, ADD_SCHOLARSHIP_DESC_IT, ADD_SCHOLARSHIP_LINK, ADD_SCHOLARSHIP_COUNTRY, ADD_SCHOLARSHIP_FIELD, DELETE_SCHOLARSHIP, MANAGE_USER, MANAGE_USER_ACTION = range(11)
 
 def load_texts(lang: str) -> dict:
     """
     Load language-specific texts from JSON files.
-
-    Args:
-        lang (str): Language code (e.g., 'en', 'fa', 'it').
-
-    Returns:
-        dict: Language texts or empty dict if file not found.
     """
     try:
         with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
@@ -45,9 +40,6 @@ def load_texts(lang: str) -> dict:
 def load_scholarships() -> dict:
     """
     Load scholarships data from scholarships.json.
-
-    Returns:
-        dict: Scholarships data or empty dict if file not found.
     """
     try:
         with open("scholarships.json", "r", encoding="utf-8") as f:
@@ -62,9 +54,6 @@ def load_scholarships() -> dict:
 def save_scholarships(data: dict) -> None:
     """
     Save scholarships data to scholarships.json.
-
-    Args:
-        data (dict): Scholarships data to save.
     """
     try:
         with open("scholarships.json", "w", encoding="utf-8") as f:
@@ -72,48 +61,114 @@ def save_scholarships(data: dict) -> None:
     except Exception as e:
         logger.error(f"Error saving scholarships.json: {e}")
 
-def check_admin(user_id: int) -> bool:
+async def start_login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Check if the user is an admin.
-
-    Args:
-        user_id (int): Telegram user ID.
-
-    Returns:
-        bool: True if user is admin, False otherwise.
+    Start the admin login process.
     """
-    return user_id == ADMIN_CHAT_ID
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} attempted to login as admin.")
+
+    await update.message.reply_text(
+        texts.get("admin_login_username", "Please enter your admin username:")
+    )
+    return LOGIN_USERNAME
+
+async def login_username(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle admin username input.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    username = update.message.text.strip()
+    logger.info(f"User {user_id} entered username: {username}")
+
+    if not username or len(username) > 50:
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid username (1-50 characters).")
+        )
+        return LOGIN_USERNAME
+
+    context.user_data["admin_username"] = username
+    await update.message.reply_text(
+        texts.get("admin_login_password", "Please enter your admin password:")
+    )
+    return LOGIN_PASSWORD
+
+async def login_password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle admin password input and authenticate.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    password = update.message.text.strip()
+    logger.info(f"User {user_id} attempted login with username: {context.user_data['admin_username']}")
+
+    try:
+        db: Session = next(get_db())
+        admin = db.query(Admin).filter_by(username=context.user_data["admin_username"]).first()
+        if admin and admin.check_password(password):
+            context.user_data["is_admin"] = True
+            keyboard = [
+                [InlineKeyboardButton(texts.get("admin_stats", "View Statistics"), callback_data="admin_stats")],
+                [InlineKeyboardButton(texts.get("admin_answer", "Answer Questions"), callback_data="admin_answer")],
+                [InlineKeyboardButton(texts.get("admin_broadcast", "Send Broadcast Message"), callback_data="admin_broadcast")],
+                [InlineKeyboardButton(texts.get("admin_manage_scholarships", "Manage Scholarships"), callback_data="admin_manage_scholarships")],
+                [InlineKeyboardButton(texts.get("admin_manage_users", "Manage Users"), callback_data="admin_manage_users")],
+                [InlineKeyboardButton(texts.get("admin_logs", "View Logs"), callback_data="admin_logs")],
+                [InlineKeyboardButton(texts.get("cancel", "Cancel"), callback_data="cancel_admin")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(
+                texts.get("admin_menu", "Welcome to the Admin Panel. Please select an option:"),
+                reply_markup=reply_markup
+            )
+            return ADMIN_MENU
+        else:
+            await update.message.reply_text(
+                texts.get("admin_login_failed", "Invalid username or password.")
+            )
+            return ConversationHandler.END
+    except Exception as e:
+        logger.error(f"Error during admin login for user {user_id}: {e}")
+        await update.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
+        )
+        return ConversationHandler.END
 
 async def start_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Start the admin panel.
+    Check if user is already logged in as admin.
     """
     user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     logger.info(f"User {user_id} attempted to access admin panel.")
 
-    if not check_admin(user_id):
+    if context.user_data.get("is_admin", False):
+        keyboard = [
+            [InlineKeyboardButton(texts.get("admin_stats", "View Statistics"), callback_data="admin_stats")],
+            [InlineKeyboardButton(texts.get("admin_answer", "Answer Questions"), callback_data="admin_answer")],
+            [InlineKeyboardButton(texts.get("admin_broadcast", "Send Broadcast Message"), callback_data="admin_broadcast")],
+            [InlineKeyboardButton(texts.get("admin_manage_scholarships", "Manage Scholarships"), callback_data="admin_manage_scholarships")],
+            [InlineKeyboardButton(texts.get("admin_manage_users", "Manage Users"), callback_data="admin_manage_users")],
+            [InlineKeyboardButton(texts.get("admin_logs", "View Logs"), callback_data="admin_logs")],
+            [InlineKeyboardButton(texts.get("cancel", "Cancel"), callback_data="cancel_admin")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(
-            texts.get("admin_access_denied", "You are not authorized to access the admin panel.")
+            texts.get("admin_menu", "Welcome to the Admin Panel. Please select an option:"),
+            reply_markup=reply_markup
+        )
+        return ADMIN_MENU
+    else:
+        await update.message.reply_text(
+            texts.get("admin_access_denied", "Please login using /login first.")
         )
         return ConversationHandler.END
-
-    keyboard = [
-        [InlineKeyboardButton(texts.get("admin_stats", "View Statistics"), callback_data="admin_stats")],
-        [InlineKeyboardButton(texts.get("admin_answer", "Answer Questions"), callback_data="admin_answer")],
-        [InlineKeyboardButton(texts.get("admin_broadcast", "Send Broadcast Message"), callback_data="admin_broadcast")],
-        [InlineKeyboardButton(texts.get("admin_manage_scholarships", "Manage Scholarships"), callback_data="admin_manage_scholarships")],
-        [InlineKeyboardButton(texts.get("admin_manage_users", "Manage Users"), callback_data="admin_manage_users")],
-        [InlineKeyboardButton(texts.get("admin_logs", "View Logs"), callback_data="admin_logs")],
-        [InlineKeyboardButton(texts.get("cancel", "Cancel"), callback_data="cancel_admin")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        texts.get("admin_menu", "Welcome to the Admin Panel. Please select an option:"),
-        reply_markup=reply_markup
-    )
-    return ADMIN_MENU
 
 async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -131,15 +186,24 @@ async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await query.message.reply_text(
             texts.get("conversation_cancelled", "Admin panel cancelled.")
         )
+        context.user_data.pop("is_admin", None)
+        context.user_data.pop("admin_username", None)
         return ConversationHandler.END
 
     if option == "admin_stats":
         try:
             db: Session = next(get_db())
             total_users = db.query(User).count()
+            total_questions = len([row for row in read_sheet("StudentBotQuestions")[1:] if row[7].startswith("Question:")])
+            total_feedback = len([row for row in read_sheet("StudentBotQuestions")[1:] if row[7].startswith("Rating:") or row[7].startswith("Feedback:")])
             top_users = db.query(User).order_by(User.points.desc()).limit(5).all()
-            stats_message = texts.get("admin_stats_title", "Statistics:\n") + f"Total Users: {total_users}\n\n"
-            stats_message += texts.get("leaderboard_title", "Top 5 Users:\n")
+            stats_message = (
+                texts.get("admin_stats_title", "Statistics:\n")
+                + f"Total Users: {total_users}\n"
+                + f"Total Questions: {total_questions}\n"
+                + f"Total Feedback: {total_feedback}\n\n"
+                + texts.get("leaderboard_title", "Top 5 Users:\n")
+            )
             for i, user in enumerate(top_users, 1):
                 stats_message += f"{i}. {user.first_name} {user.family_name} - {user.points or 0} {texts.get('points', 'points')}\n"
             await query.message.reply_text(stats_message)
@@ -285,7 +349,6 @@ async def broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 chat_id=user.user_id,
                 text=texts.get("admin_broadcast_message", "Admin Broadcast: {message}").format(message=message)
             )
-            # Save broadcast to Google Sheets
             data = [
                 user.user_id,
                 user.first_name or "",
@@ -781,7 +844,7 @@ async def submit_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
         entry = sheet_data[row_index]
         target_user_id = int(entry[0])
-        update_sheet("StudentBotQuestions", row_index + 1, 9, answer_text)  # Update Answer column
+        update_sheet("StudentBotQuestions", row_index + 1, 9, answer_text)
 
         await context.bot.send_message(
             chat_id=target_user_id,
@@ -815,12 +878,23 @@ async def cancel_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     context.user_data.pop("answer_row_index", None)
     context.user_data.pop("new_scholarship", None)
     context.user_data.pop("target_user_id", None)
+    context.user_data.pop("admin_username", None)
+    context.user_data.pop("is_admin", None)
     return ConversationHandler.END
 
 # Define ConversationHandler
 admin_conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("admin", start_admin)],
+    entry_points=[
+        CommandHandler("admin", start_admin),
+        CommandHandler("login", start_login)
+    ],
     states={
+        LOGIN_USERNAME: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, login_username)
+        ],
+        LOGIN_PASSWORD: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, login_password)
+        ],
         ADMIN_MENU: [
             CallbackQueryHandler(admin_menu, pattern="^admin_stats|^admin_answer|^admin_broadcast|^admin_manage_scholarships|^admin_manage_users|^admin_logs|^cancel_admin$")
         ],
