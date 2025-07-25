@@ -16,6 +16,7 @@ from handlers import (
     live_chat_handler,
     admin_handler,
     submenu_handler,
+    feedback_handler,
 )
 
 def main() -> None:
@@ -56,6 +57,8 @@ def main() -> None:
 
     for handler in submenu_handler.submenu_handlers:
         app.add_handler(handler)
+
+    app.add_handler(feedback_handler.feedback_conv_handler)
 
 
     # Start the Bot

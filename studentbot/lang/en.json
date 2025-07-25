@@ -43,5 +43,12 @@
     "user_feedback_button": "📝 User Feedback",
     "consult_file_prompt": "Do you want to upload a file?",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "cost_of_living_text": "This feature is under construction.",
+    "student_discounts_text": "This feature is under construction.",
+    "celi_text": "This feature is under construction.",
+    "cils_text": "This feature is under construction.",
+    "plida_text": "This feature is under construction.",
+    "user_feedback_prompt": "Please send us your feedback:",
+    "feedback_thanks": "Thank you for your feedback!"
 }

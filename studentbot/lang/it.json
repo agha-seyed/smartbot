@@ -43,5 +43,12 @@
     "user_feedback_button": "📝 Feedback degli utenti",
     "consult_file_prompt": "Vuoi caricare un file?",
     "yes": "Sì",
-    "no": "No"
+    "no": "No",
+    "cost_of_living_text": "Questa sezione è in costruzione.",
+    "student_discounts_text": "Questa sezione è in costruzione.",
+    "celi_text": "Questa sezione è in costruzione.",
+    "cils_text": "Questa sezione è in costruzione.",
+    "plida_text": "Questa sezione è in costruzione.",
+    "user_feedback_prompt": "Inviaci il tuo feedback:",
+    "feedback_thanks": "Grazie per il tuo feedback!"
 }

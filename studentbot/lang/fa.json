@@ -43,5 +43,12 @@
     "user_feedback_button": "📝 بازخورد کاربران",
     "consult_file_prompt": "آیا می‌خواهید فایلی را آپلود کنید؟",
     "yes": "بله",
-    "no": "خیر"
+    "no": "خیر",
+    "cost_of_living_text": "این بخش در حال ساخت است.",
+    "student_discounts_text": "این بخش در حال ساخت است.",
+    "celi_text": "این بخش در حال ساخت است.",
+    "cils_text": "این بخش در حال ساخت است.",
+    "plida_text": "این بخش در حال ساخت است.",
+    "user_feedback_prompt": "لطفا نظر خود را برای ما ارسال کنید:",
+    "feedback_thanks": "ممنون از نظر شما!"
 }

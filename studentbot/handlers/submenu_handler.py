@@ -95,19 +95,41 @@ async def language_courses_menu(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text("Language Courses Menu:", reply_markup=reply_markup)
 
+import feedparser
+
 async def university_news_menu(update: Update, context: CallbackContext):
     """Shows the university news menu."""
     query = update.callback_query
     await query.answer()
-    # TODO: Implement RSS feed from Uni-Italia.it and ANSA.it
-    await query.message.reply_text("This feature is under construction.")
+
+    feeds = {
+        "Uni-Italia.it": "https://www.uni-italia.it/rss.xml",
+        "ANSA.it": "https://www.ansa.it/sito/notizie/mondo/mondo_rss.xml",
+    }
+
+    news_items = []
+    for feed_name, feed_url in feeds.items():
+        feed = feedparser.parse(feed_url)
+        for entry in feed.entries[:5]:
+            news_items.append(f"<a href='{entry.link}'>{entry.title}</a>")
+
+    if news_items:
+        await query.message.reply_text("\n\n".join(news_items), parse_mode="HTML", disable_web_page_preview=True)
+    else:
+        await query.message.reply_text("Could not retrieve news at this time.")
+
+from telegram.ext import ConversationHandler
+
+USER_FEEDBACK = range(1)
 
 async def user_feedback_menu(update: Update, context: CallbackContext):
     """Shows the user feedback menu."""
     query = update.callback_query
     await query.answer()
-    # TODO: Implement user feedback form
-    await query.message.reply_text("This feature is under construction.")
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    await query.message.reply_text(texts.get("user_feedback_prompt", "Please send us your feedback:"))
+    return USER_FEEDBACK
 
 submenu_handlers = [
     CallbackQueryHandler(scholarships_menu, pattern='^scholarships$'),
@@ -157,13 +179,17 @@ async def tools_cost_of_living(update: Update, context: CallbackContext):
     """Shows the cost of living information."""
     query = update.callback_query
     await query.answer()
-    await query.message.reply_text("This feature is under construction.")
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    await query.message.reply_text(texts.get("cost_of_living_text", "This feature is under construction."))
 
 async def tools_student_discounts(update: Update, context: CallbackContext):
     """Shows the student discounts information."""
     query = update.callback_query
     await query.answer()
-    await query.message.reply_text("This feature is under construction.")
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    await query.message.reply_text(texts.get("student_discounts_text", "This feature is under construction."))
 
 submenu_handlers = [
     CallbackQueryHandler(scholarships_menu, pattern='^scholarships$'),
@@ -180,19 +206,25 @@ async def language_celi(update: Update, context: CallbackContext):
     """Shows the CELI information."""
     query = update.callback_query
     await query.answer()
-    await query.message.reply_text("This feature is under construction.")
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    await query.message.reply_text(texts.get("celi_text", "This feature is under construction."))
 
 async def language_cils(update: Update, context: CallbackContext):
     """Shows the CILS information."""
     query = update.callback_query
     await query.answer()
-    await query.message.reply_text("This feature is under construction.")
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    await query.message.reply_text(texts.get("cils_text", "This feature is under construction."))
 
 async def language_plida(update: Update, context: CallbackContext):
     """Shows the PLIDA information."""
     query = update.callback_query
     await query.answer()
-    await query.message.reply_text("This feature is under construction.")
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    await query.message.reply_text(texts.get("plida_text", "This feature is under construction."))
 
 submenu_handlers = [
     CallbackQueryHandler(scholarships_menu, pattern='^scholarships$'),
