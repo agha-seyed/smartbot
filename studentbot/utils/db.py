@@ -19,7 +19,8 @@ class User(Base):
     email = Column(String)
     field_of_study = Column(String)
     country = Column(String)
-    isee = Column(Float, nullable=True)  # New field for ISEE
+    isee = Column(Float, nullable=True)
+    points = Column(Integer, default=0)  # New field for gamification points
 
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
