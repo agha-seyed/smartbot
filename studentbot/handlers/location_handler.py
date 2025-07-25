@@ -1,5 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler
+from config import logger
 import json
 
 def load_texts(lang):
@@ -14,6 +15,7 @@ locations = {
 
 async def show_location_menu(update: Update, context: CallbackContext):
     """Shows the location menu."""
+    logger.info(f"User {update.effective_user.id} requested the location menu.")
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "fa")
@@ -34,6 +36,7 @@ async def send_location(update: Update, context: CallbackContext):
     texts = load_texts(lang)
 
     location_name = query.data.split('_')[1]
+    logger.info(f"User {update.effective_user.id} requested location: {location_name}")
 
     if location_name in locations:
         location_data = locations[location_name]
@@ -47,6 +50,7 @@ async def send_location(update: Update, context: CallbackContext):
             text=location_data["title"]
         )
     else:
+        logger.warning(f"Location not found: {location_name}")
         await query.message.reply_text(texts.get("location_not_found", "Location not found."))
 
 location_menu_handler = CallbackQueryHandler(show_location_menu, pattern='^location$')

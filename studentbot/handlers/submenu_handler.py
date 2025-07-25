@@ -1,8 +1,10 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler
+from config import logger
 
 async def scholarships_menu(update: Update, context: CallbackContext):
     """Shows the scholarships menu."""
+    logger.info(f"User {update.effective_user.id} requested the scholarships menu.")
     query = update.callback_query
     await query.answer()
     keyboard = [

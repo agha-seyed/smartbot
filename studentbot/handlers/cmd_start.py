@@ -9,6 +9,7 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode
 from . import profile_handler, gamification_handler
+from config import logger
 import json
 
 # --- Load all language texts ---
@@ -30,6 +31,7 @@ NAME, FAMILY_NAME, AGE, EMAIL, FIELD_OF_STUDY, COUNTRY = profile_handler.NAME, p
 # --- Welcome Message Handler ---
 async def start(update: Update, context: CallbackContext):
     """Sends the initial welcome message and language selection."""
+    logger.info(f"User {update.effective_user.id} started the bot.")
     welcome_text = (
         f"{all_texts['fa']['welcome_message']}\n\n"
         f"{all_texts['en']['welcome_message']}\n\n"
@@ -112,6 +114,7 @@ async def language_select_and_start_registration(update: Update, context: Callba
     user = query.from_user
     lang_code = query.data.split('_')[1]
     context.user_data['lang'] = lang_code
+    logger.info(f"User {user.id} selected language: {lang_code}")
 
     # Clean up the language selection message
     await query.edit_message_text(text=all_texts[lang_code]['welcome_message'], parse_mode=ParseMode.HTML)
@@ -123,6 +126,7 @@ from utils.db import save_user
 
 async def registration_complete(update: Update, context: CallbackContext):
     """Called after the last piece of profile info is provided."""
+    logger.info(f"User {update.effective_user.id} completed registration.")
     await profile_handler.country(update, context) # Process the final input
     save_user(context.user_data['profile'])
     gamification_handler.add_points(update.effective_user.id, 10)

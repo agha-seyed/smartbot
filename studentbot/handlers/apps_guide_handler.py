@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, CallbackQueryHandler
+from config import logger
 import json
 
 def load_texts(lang):
@@ -9,6 +10,7 @@ def load_texts(lang):
 
 async def show_apps_guide(update: Update, context: CallbackContext):
     """Shows the apps guide."""
+    logger.info(f"User {update.effective_user.id} requested the apps guide.")
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "fa")

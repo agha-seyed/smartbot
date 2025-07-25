@@ -1,5 +1,6 @@
 from telegram import Update
 from telegram.ext import CallbackContext, CallbackQueryHandler
+from config import logger
 from . import (
     profile_handler,
     isee_handler,
@@ -17,7 +18,9 @@ from . import (
 def feature_with_points(handler, points=5):
     """Wrapper to add points for using a feature."""
     async def wrapper(update: Update, context: CallbackContext):
-        gamification_handler.add_points(update.effective_user.id, points)
+        user_id = update.effective_user.id
+        logger.info(f"User {user_id} used feature {handler.__name__} and got {points} points.")
+        gamification_handler.add_points(user_id, points)
         await handler(update, context)
     return wrapper
 

@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
-from config import ADMIN_CHAT_ID
+from config import ADMIN_CHAT_ID, logger
 from utils.db import get_all_users
 import json
 
@@ -20,10 +20,13 @@ def save_files(files):
 
 async def add_file(update: Update, context: CallbackContext):
     """Adds a file to the file list."""
+    logger.info(f"User {update.effective_user.id} trying to add a file with args: {context.args}")
     if not is_admin(update):
+        logger.warning(f"User {update.effective_user.id} is not an admin.")
         return
 
     if len(context.args) != 2:
+        logger.warning(f"User {update.effective_user.id} used /addfile with wrong number of arguments.")
         await update.message.reply_text("Usage: /addfile <file_type> <file_name>")
         return
 
@@ -35,14 +38,18 @@ async def add_file(update: Update, context: CallbackContext):
 
     files[file_type].append(file_name)
     save_files(files)
+    logger.info(f"File '{file_name}' added to '{file_type}'.")
     await update.message.reply_text(f"File '{file_name}' added to '{file_type}'.")
 
 async def remove_file(update: Update, context: CallbackContext):
     """Removes a file from the file list."""
+    logger.info(f"User {update.effective_user.id} trying to remove a file with args: {context.args}")
     if not is_admin(update):
+        logger.warning(f"User {update.effective_user.id} is not an admin.")
         return
 
     if len(context.args) != 2:
+        logger.warning(f"User {update.effective_user.id} used /removefile with wrong number of arguments.")
         await update.message.reply_text("Usage: /removefile <file_type> <file_name>")
         return
 
@@ -52,26 +59,32 @@ async def remove_file(update: Update, context: CallbackContext):
     if file_type in files and file_name in files[file_type]:
         files[file_type].remove(file_name)
         save_files(files)
+        logger.info(f"File '{file_name}' removed from '{file_type}'.")
         await update.message.reply_text(f"File '{file_name}' removed from '{file_type}'.")
     else:
+        logger.warning(f"File '{file_name}' not found in '{file_type}'.")
         await update.message.reply_text(f"File '{file_name}' not found in '{file_type}'.")
 
 async def broadcast(update: Update, context: CallbackContext):
     """Broadcasts a message to all users."""
+    logger.info(f"User {update.effective_user.id} trying to broadcast a message: {context.args}")
     if not is_admin(update):
+        logger.warning(f"User {update.effective_user.id} is not an admin.")
         return
 
     message = " ".join(context.args)
     if not message:
+        logger.warning(f"User {update.effective_user.id} used /broadcast with no message.")
         await update.message.reply_text("Usage: /broadcast <message>")
         return
 
     users = get_all_users()
+    logger.info(f"Broadcasting message to {len(users)} users.")
     for user in users:
         try:
             await context.bot.send_message(chat_id=user.id, text=message)
         except Exception as e:
-            print(f"Could not send message to user {user.id}: {e}")
+            logger.error(f"Could not send message to user {user.id}: {e}")
 
     await update.message.reply_text(f"Message broadcasted to {len(users)} users.")
 
@@ -115,7 +128,9 @@ from datetime import datetime, timedelta
 
 async def schedule(update: Update, context: CallbackContext):
     """Schedules a message to be sent to all users."""
+    logger.info(f"User {update.effective_user.id} trying to schedule a message: {context.args}")
     if not is_admin(update):
+        logger.warning(f"User {update.effective_user.id} is not an admin.")
         return
 
     try:
@@ -123,10 +138,12 @@ async def schedule(update: Update, context: CallbackContext):
         message = " ".join(context.args[1:])
         send_time = datetime.strptime(time_str, "%Y-%m-%d-%H:%M")
     except (ValueError, IndexError):
+        logger.warning(f"User {update.effective_user.id} used /schedule with wrong format.")
         await update.message.reply_text("Usage: /schedule YYYY-MM-DD-HH:MM <message>")
         return
 
     users = get_all_users()
+    logger.info(f"Scheduling message to be sent at {send_time} to {len(users)} users.")
     for user in users:
         context.job_queue.run_once(
             lambda ctx: ctx.bot.send_message(chat_id=user.id, text=message),
@@ -137,17 +154,21 @@ async def schedule(update: Update, context: CallbackContext):
 
 async def poll(update: Update, context: CallbackContext):
     """Creates a poll."""
+    logger.info(f"User {update.effective_user.id} trying to create a poll: {context.args}")
     if not is_admin(update):
+        logger.warning(f"User {update.effective_user.id} is not an admin.")
         return
 
     try:
         question = context.args[0]
         options = context.args[1:]
     except IndexError:
+        logger.warning(f"User {update.effective_user.id} used /poll with wrong format.")
         await update.message.reply_text("Usage: /poll <question> <option1> <option2> ...")
         return
 
     users = get_all_users()
+    logger.info(f"Sending poll to {len(users)} users.")
     for user in users:
         try:
             await context.bot.send_poll(
@@ -158,7 +179,7 @@ async def poll(update: Update, context: CallbackContext):
                 allows_multiple_answers=False,
             )
         except Exception as e:
-            print(f"Could not send poll to user {user.id}: {e}")
+            logger.error(f"Could not send poll to user {user.id}: {e}")
 
     await update.message.reply_text(f"Poll sent to {len(users)} users.")
 

@@ -4,7 +4,7 @@ from utils.text_formatter import sanitize_markdown
 from utils.db import save_consultation
 from utils.gsheets import save_to_gsheets
 from utils.redis_utils import cache_session
-from config import ADMIN_CHAT_ID
+from config import ADMIN_CHAT_ID, logger
 import json
 
 def load_texts(lang):
@@ -16,6 +16,7 @@ FIELD, DEGREE, DESTINATION, LANGUAGE_LEVEL, QUESTION, FILE_UPLOAD = range(6)
 
 async def start_consult(update: Update, context: CallbackContext):
     """Starts the consultation conversation."""
+    logger.info(f"User {update.effective_user.id} started a consultation.")
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "fa")
@@ -102,14 +103,24 @@ async def question(update: Update, context: CallbackContext):
 
 
 async def save_consultation_data(update: Update, context: CallbackContext):
+    logger.info(f"User {update.effective_user.id} saving consultation data.")
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     consult_data = context.user_data["consult"]
 
     # Save data
-    save_consultation(consult_data)  # Uncomment when db is ready
-    # cache_session(update.effective_user.id, consult_data)  # Uncomment when redis is ready
-    save_to_gsheets(consult_data, sheet_name="Consultations")
+    try:
+        save_consultation(consult_data)
+        logger.info(f"Consultation data for user {update.effective_user.id} saved to database.")
+    except Exception as e:
+        logger.error(f"Could not save consultation data for user {update.effective_user.id} to database: {e}")
+
+    try:
+        save_to_gsheets(consult_data, sheet_name="Consultations")
+        logger.info(f"Consultation data for user {update.effective_user.id} saved to Google Sheets.")
+    except Exception as e:
+        logger.error(f"Could not save consultation data for user {update.effective_user.id} to Google Sheets: {e}")
+
 
     # Notify admin
     admin_msg = texts["consult_admin_notify"].format(
@@ -125,12 +136,17 @@ async def save_consultation_data(update: Update, context: CallbackContext):
         [InlineKeyboardButton(texts["respond"], callback_data=f"respond_{update.effective_user.id}"),
          InlineKeyboardButton(texts["archive"], callback_data=f"archive_{update.effective_user.id}")]
     ]
-    await context.bot.send_message( # Uncomment when admin chat id is set
-        chat_id=ADMIN_CHAT_ID,
-        text=sanitize_markdown(admin_msg),
-        parse_mode="MarkdownV2",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    try:
+        await context.bot.send_message( # Uncomment when admin chat id is set
+            chat_id=ADMIN_CHAT_ID,
+            text=sanitize_markdown(admin_msg),
+            parse_mode="MarkdownV2",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        logger.info(f"Admin notified for new consultation from user {update.effective_user.id}.")
+    except Exception as e:
+        logger.error(f"Could not notify admin for new consultation from user {update.effective_user.id}: {e}")
+
 
     # Confirm to user
     user_msg = texts["consult_confirmation"].format(

@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from utils.db import save_user
 from utils.text_formatter import sanitize_markdown
+from config import logger
 import json
 
 def load_texts(lang):
@@ -13,6 +14,7 @@ NAME, FAMILY_NAME, AGE, EMAIL, FIELD_OF_STUDY, COUNTRY = range(6)
 
 async def start_profile_flow(update: Update, context: CallbackContext, first_name: str):
     """Starts the profile creation flow after language selection."""
+    logger.info(f"User {update.effective_user.id} starting profile flow.")
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
 
@@ -79,6 +81,7 @@ async def country(update: Update, context: CallbackContext):
 
 async def show_profile(update: Update, context: CallbackContext):
     """Displays the user's profile information."""
+    logger.info(f"User {update.effective_user.id} requested their profile.")
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     profile = context.user_data.get('profile', {})
@@ -93,4 +96,5 @@ async def show_profile(update: Update, context: CallbackContext):
         """
         await update.callback_query.message.reply_text(sanitize_markdown(profile_text))
     else:
+        logger.warning(f"User {update.effective_user.id} has no profile.")
         await update.callback_query.message.reply_text(sanitize_markdown(texts.get("profile_not_found", "Profile not found.")))

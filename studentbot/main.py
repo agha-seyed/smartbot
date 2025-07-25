@@ -23,9 +23,6 @@ def main() -> None:
     """Run the bot."""
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # --- Core Onboarding Handler ---
-    app.add_handler(cmd_start.onboarding_conv_handler)
-
     # --- Feature Handlers ---
     app.add_handler(isee_handler.isee_conv_handler)
     app.add_handler(consult_handler.consult_conv_handler)
@@ -59,6 +56,9 @@ def main() -> None:
         app.add_handler(handler)
 
     app.add_handler(feedback_handler.feedback_conv_handler)
+
+    # --- Core Onboarding Handler ---
+    app.add_handler(cmd_start.onboarding_conv_handler)
 
 
     # Start the Bot

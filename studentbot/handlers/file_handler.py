@@ -1,5 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler
+from config import logger
 import json
 import os
 
@@ -13,6 +14,7 @@ def load_files():
 
 async def show_file_menu(update: Update, context: CallbackContext):
     """Shows the file menu."""
+    logger.info(f"User {update.effective_user.id} requested the file menu.")
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "fa")
@@ -37,6 +39,7 @@ async def send_file(update: Update, context: CallbackContext):
 
     file_type, file_name = query.data.split('_')[1:]
     file_path = f"assets/{file_type}s/{file_name}"
+    logger.info(f"User {update.effective_user.id} requested file: {file_path}")
 
     try:
         with open(file_path, "rb") as file:
@@ -45,6 +48,7 @@ async def send_file(update: Update, context: CallbackContext):
             elif file_type == 'video':
                 await context.bot.send_video(chat_id=update.effective_chat.id, video=file)
     except FileNotFoundError:
+        logger.error(f"File not found: {file_path}")
         await query.message.reply_text(texts.get("file_not_found", "File not found."))
 
 file_menu_handler = CallbackQueryHandler(show_file_menu, pattern='^file$')

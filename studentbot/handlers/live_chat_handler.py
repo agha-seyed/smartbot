@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler, MessageHandler, filters
-from config import ADMIN_CHAT_ID
+from config import ADMIN_CHAT_ID, logger
 import json
 
 def load_texts(lang):
@@ -9,6 +9,7 @@ def load_texts(lang):
 
 async def start_chat(update: Update, context: CallbackContext):
     """Starts a live chat session."""
+    logger.info(f"User {update.effective_user.id} started a live chat.")
     query = update.callback_query
     await query.answer()
     lang = context.user_data.get("lang", "fa")
@@ -19,6 +20,7 @@ async def start_chat(update: Update, context: CallbackContext):
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=f"User {update.effective_user.id} started a chat.")
 
 async def end_chat(update: Update, context: CallbackContext):
+    logger.info(f"User {update.effective_user.id} ended a live chat.")
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
 
