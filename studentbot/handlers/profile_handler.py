@@ -27,6 +27,7 @@ async def start_profile_flow(update: Update, context: CallbackContext, first_nam
         await update.message.reply_text(sanitize_markdown(welcome_message))
         await update.message.reply_text(sanitize_markdown(texts["profile_name"]))
 
+    logger.info(f"Returning state NAME: {NAME}")
     return NAME
 
 async def name(update: Update, context: CallbackContext):

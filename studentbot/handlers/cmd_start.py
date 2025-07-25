@@ -23,7 +23,7 @@ def load_all_texts():
 all_texts = load_all_texts()
 
 # --- Conversation States ---
-SELECTING_LANG, REGISTERING_PROFILE = range(2)
+SELECTING_LANG = range(1)
 # Profile states are imported from profile_handler
 NAME, FAMILY_NAME, AGE, EMAIL, FIELD_OF_STUDY, COUNTRY = profile_handler.NAME, profile_handler.FAMILY_NAME, profile_handler.AGE, profile_handler.EMAIL, profile_handler.FIELD_OF_STUDY, profile_handler.COUNTRY
 
@@ -114,13 +114,15 @@ async def language_select_and_start_registration(update: Update, context: Callba
     user = query.from_user
     lang_code = query.data.split('_')[1]
     context.user_data['lang'] = lang_code
-    logger.info(f"User {user.id} selected language: {lang_code}")
+    logger.info(f"User {user.id} selected language: {lang_code}. Callback data: {query.data}")
 
     # Clean up the language selection message
     await query.edit_message_text(text=all_texts[lang_code]['welcome_message'], parse_mode=ParseMode.HTML)
 
     # Start the profile flow
-    return await profile_handler.start_profile_flow(update, context, user.first_name)
+    next_state = await profile_handler.start_profile_flow(update, context, user.first_name)
+    logger.info(f"Next state: {next_state}")
+    return next_state
 
 from utils.db import save_user
 
@@ -145,7 +147,6 @@ onboarding_conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
     states={
         SELECTING_LANG: [CallbackQueryHandler(language_select_and_start_registration, pattern='^lang_')],
-        # Registration states
         NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_handler.name)],
         FAMILY_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_handler.family_name)],
         AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_handler.age)],
@@ -154,4 +155,8 @@ onboarding_conv_handler = ConversationHandler(
         COUNTRY: [MessageHandler(filters.TEXT & ~filters.COMMAND, registration_complete)],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
+    map_to_parent={
+        # After registration is complete, end the conversation
+        ConversationHandler.END: ConversationHandler.END
+    }
 )
