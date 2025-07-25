@@ -1,5 +1,5 @@
 # بخش: قابلیت‌های اضافی
-# فایل: admin_handler.py
+# فایل: handlers/admin_handler.py
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -42,13 +42,13 @@ def load_scholarships() -> dict:
     Load scholarships data from scholarships.json.
     """
     try:
-        with open("scholarships.json", "r", encoding="utf-8") as f:
+        with open("data/scholarships.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        logger.error("Scholarships file scholarships.json not found.")
+        logger.error("Scholarships file data/scholarships.json not found.")
         return {"scholarships": []}
     except json.JSONDecodeError:
-        logger.error("Invalid JSON in scholarships.json.")
+        logger.error("Invalid JSON in data/scholarships.json.")
         return {"scholarships": []}
 
 def save_scholarships(data: dict) -> None:
@@ -56,10 +56,10 @@ def save_scholarships(data: dict) -> None:
     Save scholarships data to scholarships.json.
     """
     try:
-        with open("scholarships.json", "w", encoding="utf-8") as f:
+        with open("data/scholarships.json", "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        logger.error(f"Error saving scholarships.json: {e}")
+        logger.error(f"Error saving data/scholarships.json: {e}")
 
 async def start_login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
