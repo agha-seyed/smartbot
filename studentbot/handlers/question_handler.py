@@ -1,99 +1,160 @@
-from telegram import Update
+# بخش: Handlerهای اصلی
+# فایل: question_handler.py
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ConversationHandler,
-    CallbackContext,
+    Application,
     CommandHandler,
     MessageHandler,
-    Filters,
-    CallbackQueryHandler,  # اضافه کردن CallbackQueryHandler
+    CallbackQueryHandler,
+    ConversationHandler,
+    ContextTypes,
+    filters,
 )
-from utils.gsheets import save_to_gsheets
-from config import ADMIN_CHAT_ID, QUESTIONS_SHEET_NAME, logger
-from utils.text_formatter import sanitize_markdown
+from config import logger, ADMIN_CHAT_ID
+from utils.gsheets import save_question
+from datetime import datetime
 import json
 
-# مراحل مکالمه
-QUESTION = range(1)
+# States for ConversationHandler
+QUESTION, CONFIRM = range(2)
 
-def load_texts(lang):
-    """Load language-specific texts from JSON files."""
+def load_texts(lang: str) -> dict:
+    """
+    Load language-specific texts from JSON files.
+
+    Args:
+        lang (str): Language code (e.g., 'en', 'fa', 'it').
+
+    Returns:
+        dict: Language texts or empty dict if file not found.
+    """
     try:
-        with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
+        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
         logger.error(f"Language file lang/{lang}.json not found.")
-        raise
+        return {}
     except json.JSONDecodeError:
         logger.error(f"Invalid JSON in lang/{lang}.json.")
-        raise
+        return {}
 
-async def start_question(update: Update, context: CallbackContext):
-    """Starts the question submission conversation."""
-    logger.info(f"User {update.effective_user.id} started a question.")
+async def start_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Start the question submission process.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} started question submission.")
+
+    await update.message.reply_text(
+        texts.get("question_intro", "Please enter your question:")
+    )
+    return QUESTION
+
+async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the user's question.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    question = update.message.text.strip()
+
+    if not question or len(question) > 500:
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid question (1-500 characters).")
+        )
+        return QUESTION
+
+    context.user_data["question"] = question
+    logger.info(f"User {user_id} entered question: {question}")
+
+    keyboard = [
+        [
+            InlineKeyboardButton(texts.get("yes", "Yes"), callback_data="confirm_question"),
+            InlineKeyboardButton(texts.get("no", "No"), callback_data="cancel_question"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        texts.get("question_confirm", "Is this your question?") + f"\n\n{question}",
+        reply_markup=reply_markup
+    )
+    return CONFIRM
+
+async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Save the question to Google Sheets, notify admin, and end the conversation.
+    """
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        await query.message.reply_text(sanitize_markdown(texts["question_intro"]))
-        return QUESTION
-    except KeyError as e:
-        logger.error(f"Missing key in language file for {lang}: {e}")
-        await query.message.reply_text("Error: Language data is incomplete.")
-        return ConversationHandler.END
-
-async def get_question(update: Update, context: CallbackContext):
-    """Receives the user's question and saves it to Google Sheets."""
-    logger.info(f"User {update.effective_user.id} submitted a question.")
-    lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-    except Exception as e:
-        logger.error(f"Error loading texts for {lang}: {e}")
-        await update.message.reply_text("Error: Language data is unavailable.")
-        return ConversationHandler.END
-
-    question_data = {
-        "user_id": update.effective_user.id,
-        "question": update.message.text
-    }
+    texts = load_texts(lang)
+    question = context.user_data.get("question")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"User {user_id} confirmed question.")
 
     try:
-        save_to_gsheets(question_data, sheet_name=QUESTIONS_SHEET_NAME)
-        logger.info(f"Question from user {update.effective_user.id} saved to Google Sheets.")
-    except Exception as e:
-        logger.error(f"Could not save question from user {update.effective_user.id} to Google Sheets: {e}")
-        await update.message.reply_text(sanitize_markdown(texts.get("error_message", "An error occurred.")))
-        return ConversationHandler.END
-
-    try:
+        # Save question to Google Sheets
+        save_question(user_id, question, timestamp)
+        
+        # Notify admin
+        admin_message = (
+            texts.get("question_admin_notify", "New question submitted:\n")
+            + f"User ID: {user_id}\n"
+            + f"Question: {question}\n"
+            + f"Time: {timestamp}"
+        )
         await context.bot.send_message(
             chat_id=ADMIN_CHAT_ID,
-            text=f"New question from user {update.effective_user.id}:\n\n{update.message.text}"
+            text=admin_message
         )
-        logger.info(f"Admin notified for new question from user {update.effective_user.id}.")
+        
+        await query.message.reply_text(
+            texts.get("question_submitted", "Your question has been submitted successfully!")
+        )
     except Exception as e:
-        logger.error(f"Could not notify admin for new question from user {update.effective_user.id}: {e}")
+        logger.error(f"Error saving question for user {user_id}: {e}")
+        await query.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
+        )
 
-    await update.message.reply_text(sanitize_markdown(texts["question_submitted"]))
+    # Clear question data
+    context.user_data.pop("question", None)
     return ConversationHandler.END
 
-async def cancel(update: Update, context: CallbackContext):
-    """Cancels the question submission conversation."""
+async def cancel_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Cancel question submission and end the conversation.
+    """
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
-    try:
-        texts = load_texts(lang)
-        await update.message.reply_text(sanitize_markdown(texts["conversation_cancelled"]))
-    except Exception as e:
-        logger.error(f"Error loading texts for {lang}: {e}")
-        await update.message.reply_text("Operation cancelled due to an error.")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} cancelled question submission.")
+
+    await query.message.reply_text(
+        texts.get("conversation_cancelled", "Question submission cancelled.")
+    )
+    context.user_data.pop("question", None)
     return ConversationHandler.END
 
+# Define ConversationHandler
 question_conv_handler = ConversationHandler(
-    entry_points=[CallbackQueryHandler(start_question, pattern='^question$')],
+    entry_points=[CommandHandler("ask", start_question)],
     states={
-        QUESTION: [MessageHandler(Filters.TEXT & ~Filters.COMMAND, get_question)],
+        QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)],
+        CONFIRM: [
+            CallbackQueryHandler(confirm_question, pattern="^confirm_question$"),
+            CallbackQueryHandler(cancel_question, pattern="^cancel_question$"),
+        ],
     },
-    fallbacks=[CommandHandler("cancel", cancel)],
-    per_message=False
+    fallbacks=[CommandHandler("cancel", cancel_question)],
 )
+
+# Define handlers for main.py
+handlers = [question_conv_handler]
