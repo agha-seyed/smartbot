@@ -1,100 +1,302 @@
-from telegram import Update
-from telegram.ext import CallbackContext
-from utils.db import save_user
-from utils.text_formatter import sanitize_markdown
+# بخش: جریان اصلی ربات
+# فایل: profile_handler.py
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    ConversationHandler,
+    ContextTypes,
+    filters,
+)
 from config import logger
+from utils.db import get_db, User
+from sqlalchemy.orm import Session
 import json
+import re
 
-def load_texts(lang):
-    with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
-        return json.load(f)
+# States for ConversationHandler
+NAME, FAMILY_NAME, AGE, EMAIL, FIELD_OF_STUDY, COUNTRY, CONFIRM = range(7)
 
-# States (used by cmd_start)
-NAME, FAMILY_NAME, AGE, EMAIL, FIELD_OF_STUDY, COUNTRY = range(6)
+def load_texts(lang: str) -> dict:
+    """
+    Load language-specific texts from JSON files.
 
-async def start_profile_flow(update: Update, context: CallbackContext, first_name: str):
-    """Starts the profile creation flow after language selection."""
-    logger.info(f"User {update.effective_user.id} starting profile flow.")
+    Args:
+        lang (str): Language code (e.g., 'en', 'fa', 'it').
+
+    Returns:
+        dict: Language texts or empty dict if file not found.
+    """
+    try:
+        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Language file lang/{lang}.json not found.")
+        return {}
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in lang/{lang}.json.")
+        return {}
+
+async def start_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Start the profile creation process.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
+    logger.info(f"User {user_id} started profile creation.")
 
-    welcome_message = texts["profile_creation_intro"].format(first_name=first_name)
+    # Check if profile already exists
+    db: Session = next(get_db())
+    existing_user = db.query(User).filter_by(user_id=user_id).first()
+    if existing_user:
+        await update.message.reply_text(
+            texts.get("profile_complete", "You already have a profile.")
+        )
+        return ConversationHandler.END
 
-    if update.callback_query:
-        await update.callback_query.message.reply_text(sanitize_markdown(welcome_message))
-        await update.callback_query.message.reply_text(sanitize_markdown(texts["profile_name"]))
-    else:
-        await update.message.reply_text(sanitize_markdown(welcome_message))
-        await update.message.reply_text(sanitize_markdown(texts["profile_name"]))
-
+    await update.message.reply_text(
+        texts.get("profile_creation_intro", "Let's create your profile!") + "\n" +
+        texts.get("profile_name", "What's your first name?")
+    )
     return NAME
 
-async def name(update: Update, context: CallbackContext):
-    """Saves name and asks for family name."""
+async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the user's first name.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    context.user_data['profile'] = {'name': update.message.text}
-    await update.message.reply_text(sanitize_markdown(texts["profile_family_name"]))
+    name = update.message.text.strip()
+
+    if not name or len(name) > 50:
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid first name (1-50 characters).")
+        )
+        return NAME
+
+    context.user_data["profile_name"] = name
+    logger.info(f"User {user_id} entered name: {name}")
+    await update.message.reply_text(
+        texts.get("profile_family_name", "What's your family name?")
+    )
     return FAMILY_NAME
 
-async def family_name(update: Update, context: CallbackContext):
-    """Saves family name and asks for age."""
+async def get_family_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the user's family name.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    context.user_data['profile']['family_name'] = update.message.text
-    await update.message.reply_text(sanitize_markdown(texts["profile_age"]))
+    family_name = update.message.text.strip()
+
+    if not family_name or len(family_name) > 50:
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid family name (1-50 characters).")
+        )
+        return FAMILY_NAME
+
+    context.user_data["profile_family_name"] = family_name
+    logger.info(f"User {user_id} entered family name: {family_name}")
+    await update.message.reply_text(
+        texts.get("profile_age", "How old are you?")
+    )
     return AGE
 
-async def age(update: Update, context: CallbackContext):
-    """Saves age and asks for email."""
+async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the user's age.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    context.user_data['profile']['age'] = int(update.message.text)
-    await update.message.reply_text(sanitize_markdown(texts["profile_email"]))
+    age_text = update.message.text.strip()
+
+    try:
+        age = int(age_text)
+        if age < 16 or age > 100:
+            raise ValueError
+    except ValueError:
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid age (16-100).")
+        )
+        return AGE
+
+    context.user_data["profile_age"] = age
+    logger.info(f"User {user_id} entered age: {age}")
+    await update.message.reply_text(
+        texts.get("profile_email", "What's your email address?")
+    )
     return EMAIL
 
-async def email(update: Update, context: CallbackContext):
-    """Saves email and asks for field of study."""
+async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the user's email.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    context.user_data['profile']['email'] = update.message.text
-    await update.message.reply_text(sanitize_markdown(texts["profile_field_of_study"]))
+    email = update.message.text.strip()
+
+    # Basic email validation
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid email address.")
+        )
+        return EMAIL
+
+    context.user_data["profile_email"] = email
+    logger.info(f"User {user_id} entered email: {email}")
+    await update.message.reply_text(
+        texts.get("profile_field_of_study", "What's your field of study?")
+    )
     return FIELD_OF_STUDY
 
-async def field_of_study(update: Update, context: CallbackContext):
-    """Saves field of study and asks for country."""
+async def get_field_of_study(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the user's field of study.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    context.user_data['profile']['field_of_study'] = update.message.text
-    await update.message.reply_text(sanitize_markdown(texts["profile_country"]))
+    field_of_study = update.message.text.strip()
+
+    if not field_of_study or len(field_of_study) > 100:
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid field of study (1-100 characters).")
+        )
+        return FIELD_OF_STUDY
+
+    context.user_data["profile_field_of_study"] = field_of_study
+    logger.info(f"User {user_id} entered field of study: {field_of_study}")
+    await update.message.reply_text(
+        texts.get("profile_country", "What's your country?")
+    )
     return COUNTRY
 
-async def country(update: Update, context: CallbackContext):
-    """Saves country. The conversation will be ended by the calling handler."""
+async def get_country(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Handle the user's country.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    context.user_data['profile']['country'] = update.message.text
-    # The save_user call is now handled in the main conversation handler
-    # after this function completes.
-    await update.message.reply_text(sanitize_markdown(texts["profile_complete"]))
-    return -1 # End of this sub-flow, return to parent handler
+    country = update.message.text.strip()
 
-async def show_profile(update: Update, context: CallbackContext):
-    """Displays the user's profile information."""
-    logger.info(f"User {update.effective_user.id} requested their profile.")
+    if not country or len(country) > 50:
+        await update.message.reply_text(
+            texts.get("error_message", "Please enter a valid country (1-50 characters).")
+        )
+        return COUNTRY
+
+    context.user_data["profile_country"] = country
+    logger.info(f"User {user_id} entered country: {country}")
+
+    # Show confirmation message
+    profile_summary = (
+        f"{texts.get('profile_name', 'Name')}: {context.user_data['profile_name']}\n"
+        f"{texts.get('profile_family_name', 'Family Name')}: {context.user_data['profile_family_name']}\n"
+        f"{texts.get('profile_age', 'Age')}: {context.user_data['profile_age']}\n"
+        f"{texts.get('profile_email', 'Email')}: {context.user_data['profile_email']}\n"
+        f"{texts.get('profile_field_of_study', 'Field of Study')}: {context.user_data['profile_field_of_study']}\n"
+        f"{texts.get('profile_country', 'Country')}: {context.user_data['profile_country']}"
+    )
+    keyboard = [
+        [
+            InlineKeyboardButton(texts.get("yes", "Yes"), callback_data="confirm_profile"),
+            InlineKeyboardButton(texts.get("no", "No"), callback_data="cancel_profile"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        texts.get("profile_complete", "Please confirm your profile:") + "\n\n" + profile_summary,
+        reply_markup=reply_markup
+    )
+    return CONFIRM
+
+async def confirm_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Save the profile to the database and end the conversation.
+    """
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    profile = context.user_data.get('profile', {})
-    if profile:
-        profile_text = f"""
-*Name:* {profile.get('name', 'N/A')}
-*Family Name:* {profile.get('family_name', 'N/A')}
-*Age:* {profile.get('age', 'N/A')}
-*Email:* {profile.get('email', 'N/A')}
-*Field of Study:* {profile.get('field_of_study', 'N/A')}
-*Country:* {profile.get('country', 'N/A')}
-        """
-        await update.callback_query.message.reply_text(sanitize_markdown(profile_text))
-    else:
-        logger.warning(f"User {update.effective_user.id} has no profile.")
-        await update.callback_query.message.reply_text(sanitize_markdown(texts.get("profile_not_found", "Profile not found.")))
+    logger.info(f"User {user_id} confirmed profile.")
+
+    try:
+        db: Session = next(get_db())
+        user = User(
+            user_id=user_id,
+            first_name=context.user_data["profile_name"],
+            family_name=context.user_data["profile_family_name"],
+            age=context.user_data["profile_age"],
+            email=context.user_data["profile_email"],
+            field_of_study=context.user_data["profile_field_of_study"],
+            country=context.user_data["profile_country"],
+        )
+        db.add(user)
+        db.commit()
+        logger.info(f"Profile saved for user {user_id}")
+        await query.message.reply_text(
+            texts.get("profile_complete", "Your profile has been created successfully!")
+        )
+    except Exception as e:
+        logger.error(f"Error saving profile for user {user_id}: {e}")
+        await query.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
+        )
+
+    # Clear profile data
+    for key in ["profile_name", "profile_family_name", "profile_age", "profile_email", "profile_field_of_study", "profile_country"]:
+        context.user_data.pop(key, None)
+
+    return ConversationHandler.END
+
+async def cancel_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Cancel profile creation and end the conversation.
+    """
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} cancelled profile creation.")
+
+    await query.message.reply_text(
+        texts.get("conversation_cancelled", "Profile creation cancelled.")
+    )
+
+    # Clear profile data
+    for key in ["profile_name", "profile_family_name", "profile_age", "profile_email", "profile_field_of_study", "profile_country"]:
+        context.user_data.pop(key, None)
+
+    return ConversationHandler.END
+
+# Define ConversationHandler
+profile_conv_handler = ConversationHandler(
+    entry_points=[CommandHandler("profile", start_profile)],
+    states={
+        NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
+        FAMILY_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_family_name)],
+        AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_age)],
+        EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
+        FIELD_OF_STUDY: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_field_of_study)],
+        COUNTRY: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_country)],
+        CONFIRM: [
+            CallbackQueryHandler(confirm_profile, pattern="^confirm_profile$"),
+            CallbackQueryHandler(cancel_profile, pattern="^cancel_profile$"),
+        ],
+    },
+    fallbacks=[CommandHandler("cancel", cancel_profile)],
+)
+
+# Define handlers for main.py
+handlers = [profile_conv_handler]
