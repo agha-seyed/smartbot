@@ -50,5 +50,8 @@
     "cils_text": "The CILS exam is another prestigious Italian language exam, held by the University of Siena for Foreigners. For more information, visit the university's website.",
     "plida_text": "The PLIDA exam is held by the Dante Alighieri Society and is another prestigious Italian language exam. For more information, visit the Dante Alighieri Society website.",
     "user_feedback_prompt": "Please send us your feedback:",
-    "feedback_thanks": "Thank you for your feedback!"
+    "feedback_thanks": "Thank you for your feedback!",
+    "question_intro": "Please enter your question:",
+    "question_submitted": "Your question has been submitted successfully!",
+    "error_message": "An error occurred. Please try again later."
 }
