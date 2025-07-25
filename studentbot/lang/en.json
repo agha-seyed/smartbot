@@ -44,11 +44,11 @@
     "consult_file_prompt": "Do you want to upload a file?",
     "yes": "Yes",
     "no": "No",
-    "cost_of_living_text": "This feature is under construction.",
-    "student_discounts_text": "This feature is under construction.",
-    "celi_text": "This feature is under construction.",
-    "cils_text": "This feature is under construction.",
-    "plida_text": "This feature is under construction.",
+    "cost_of_living_text": "The average cost of living in Perugia is between €600 and €800 per month. This includes housing, food, transportation, and other expenses.",
+    "student_discounts_text": "You can get various discounts at museums, cinemas, restaurants, and shops with your student card.",
+    "celi_text": "The CELI exam is one of the most prestigious Italian language exams, held by the University for Foreigners of Perugia. For more information, visit the university's website.",
+    "cils_text": "The CILS exam is another prestigious Italian language exam, held by the University of Siena for Foreigners. For more information, visit the university's website.",
+    "plida_text": "The PLIDA exam is held by the Dante Alighieri Society and is another prestigious Italian language exam. For more information, visit the Dante Alighieri Society website.",
     "user_feedback_prompt": "Please send us your feedback:",
     "feedback_thanks": "Thank you for your feedback!"
 }

@@ -44,11 +44,11 @@
     "consult_file_prompt": "Vuoi caricare un file?",
     "yes": "Sì",
     "no": "No",
-    "cost_of_living_text": "Questa sezione è in costruzione.",
-    "student_discounts_text": "Questa sezione è in costruzione.",
-    "celi_text": "Questa sezione è in costruzione.",
-    "cils_text": "Questa sezione è in costruzione.",
-    "plida_text": "Questa sezione è in costruzione.",
+    "cost_of_living_text": "Il costo medio della vita a Perugia è tra 600 e 800 euro al mese. Questo include alloggio, cibo, trasporti e altre spese.",
+    "student_discounts_text": "Con la tua tessera studentesca puoi ottenere vari sconti in musei, cinema, ristoranti e negozi.",
+    "celi_text": "L'esame CELI è uno dei più prestigiosi esami di lingua italiana, tenuto dall'Università per Stranieri di Perugia. Per maggiori informazioni, visita il sito dell'università.",
+    "cils_text": "L'esame CILS è un altro prestigioso esame di lingua italiana, tenuto dall'Università per Stranieri di Siena. Per maggiori informazioni, visita il sito dell'università.",
+    "plida_text": "L'esame PLIDA è tenuto dalla Società Dante Alighieri ed è un altro prestigioso esame di lingua italiana. Per maggiori informazioni, visita il sito della Società Dante Alighieri.",
     "user_feedback_prompt": "Inviaci il tuo feedback:",
     "feedback_thanks": "Grazie per il tuo feedback!"
 }
