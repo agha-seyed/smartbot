@@ -1,54 +1,112 @@
-from telegram import Update
-from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler  # اضافه کردن CallbackQueryHandler
-from utils.db import SessionLocal, Gamification
+# بخش: قابلیت‌های اضافی
+# فایل: gamification_handler.py
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CommandHandler, ContextTypes
 from config import logger
+from utils.db import get_db, User
+from sqlalchemy.orm import Session
 import json
 
-def load_texts(lang):
-    """Load language-specific texts from JSON files."""
-    with open(f'lang/{lang}.json', 'r', encoding='utf-8') as f:
-        return json.load(f)
+def load_texts(lang: str) -> dict:
+    """
+    Load language-specific texts from JSON files.
 
-def add_points(user_id, points_to_add):
-    """Add points to a user's gamification profile."""
-    logger.info(f"Adding {points_to_add} points to user {user_id}.")
-    db = SessionLocal()
+    Args:
+        lang (str): Language code (e.g., 'en', 'fa', 'it').
+
+    Returns:
+        dict: Language texts or empty dict if file not found.
+    """
     try:
-        user_gamification = db.query(Gamification).filter(Gamification.user_id == user_id).first()
-        if not user_gamification:
-            user_gamification = Gamification(user_id=user_id, points=0)
-            db.add(user_gamification)
-        user_gamification.points += points_to_add
-        db.commit()
+        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Language file lang/{lang}.json not found.")
+        return {}
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in lang/{lang}.json.")
+        return {}
+
+def add_points(user_id: int, points: int, db: Session) -> None:
+    """
+    Add points to a user's account.
+
+    Args:
+        user_id (int): Telegram user ID.
+        points (int): Points to add.
+        db (Session): Database session.
+    """
+    try:
+        user = db.query(User).filter_by(user_id=user_id).first()
+        if user:
+            user.points = (user.points or 0) + points
+            db.commit()
+            logger.info(f"Added {points} points to user {user_id}. Total points: {user.points}")
+        else:
+            logger.error(f"User {user_id} not found for adding points.")
     except Exception as e:
         logger.error(f"Error adding points for user {user_id}: {e}")
-        raise
-    finally:
-        db.close()
 
-async def show_gamification_profile(update: Update, context: CallbackContext):
-    """Shows the user's gamification profile."""
-    logger.info(f"User {update.effective_user.id} requested gamification profile.")
-    query = update.callback_query
-    await query.answer()
+async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Show the user's current points.
+    """
+    user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    user_id = update.effective_user.id
+    logger.info(f"User {user_id} requested points.")
 
-    db = SessionLocal()
     try:
-        user_gamification = db.query(Gamification).filter(Gamification.user_id == user_id).first()
-        if user_gamification:
-            points = user_gamification.points
-            badges = user_gamification.badges or "هیچ نشانی"
-            profile_text = texts["gamification_profile"].format(points=points, badges=badges)
-        else:
-            profile_text = texts["gamification_no_profile"]
-        await query.message.reply_text(profile_text)
-    except Exception as e:
-        logger.error(f"Error showing gamification profile for user {user_id}: {e}")
-        await query.message.reply_text(texts["error_message"])
-    finally:
-        db.close()
+        db: Session = next(get_db())
+        user = db.query(User).filter_by(user_id=user_id).first()
+        if not user:
+            await update.message.reply_text(
+                texts.get("no_profile", "Please create your profile first using /profile.")
+            )
+            return
 
-gamification_profile_handler = CallbackQueryHandler(show_gamification_profile, pattern='^gamification$')
+        points = user.points or 0
+        await update.message.reply_text(
+            texts.get("points_status", "Your current points: {points}").format(points=points)
+        )
+    except Exception as e:
+        logger.error(f"Error showing points for user {user_id}: {e}")
+        await update.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
+        )
+
+async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Show the top 5 users with the highest points.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} requested leaderboard.")
+
+    try:
+        db: Session = next(get_db())
+        top_users = db.query(User).order_by(User.points.desc()).limit(5).all()
+        if not top_users:
+            await update.message.reply_text(
+                texts.get("leaderboard_empty", "No users in the leaderboard yet.")
+            )
+            return
+
+        leaderboard = texts.get("leaderboard_title", "Top 5 Users:\n")
+        for i, user in enumerate(top_users, 1):
+            leaderboard += f"{i}. {user.first_name} {user.family_name} - {user.points or 0} {texts.get('points', 'points')}\n"
+
+        await update.message.reply_text(leaderboard)
+    except Exception as e:
+        logger.error(f"Error showing leaderboard for user {user_id}: {e}")
+        await update.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
+        )
+
+# Define handlers for main.py
+handlers = [
+    CommandHandler("points", show_points),
+    CommandHandler("leaderboard", show_leaderboard),
+]
