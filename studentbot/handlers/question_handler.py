@@ -1,6 +1,9 @@
 # بخش: Handlerهای اصلی
 # فایل: question_handler.py
 
+)
+# فایل: handlers/question_handler.py
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -14,7 +17,7 @@ from telegram.ext import (
 from config import logger, ADMIN_CHAT_ID
 from utils.gsheets import append_to_sheet
 from utils.db import get_db, User
-from utils.gamification import add_points  # Import the add_points function
+from handlers.gamification import add_points  # اصلاح مسیر import
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
