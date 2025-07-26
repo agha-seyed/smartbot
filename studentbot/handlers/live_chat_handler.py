@@ -1,5 +1,4 @@
-# بخش: قابلیت‌های اضافی
-# فایل: live_chat_handler.py
+# فایل: handlers/live_chat_handler.py
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -15,7 +14,7 @@ from config import logger, ADMIN_CHAT_ID
 from utils.redis_utils import cache_session, get_session
 from utils.gsheets import append_to_sheet
 from utils.db import get_db, User
-from utils.gamification import add_points
+from handlers.gamification_handler import add_points
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
@@ -26,10 +25,8 @@ CHAT = 0
 def load_texts(lang: str) -> dict:
     """
     Load language-specific texts from JSON files.
-
     Args:
         lang (str): Language code (e.g., 'en', 'fa', 'it').
-
     Returns:
         dict: Language texts or empty dict if file not found.
     """
