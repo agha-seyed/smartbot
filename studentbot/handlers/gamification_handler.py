@@ -3,9 +3,9 @@
 # بخش: قابلیت‌های اضافی
 # فایل: gamification_handler.py
 
+# فایل: handlers/gamification_handler.py
 
-
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, ContextTypes
 from config import logger
 from utils.db import get_db, User
@@ -13,7 +13,13 @@ from sqlalchemy.orm import Session
 import json
 
 def load_texts(lang: str) -> dict:
-    """Load language-specific texts from JSON files."""
+    """
+    Load language-specific texts from JSON files.
+    Args:
+        lang (str): Language code (e.g., 'en', 'fa', 'it').
+    Returns:
+        dict: Language texts or empty dict if file not found.
+    """
     try:
         with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
             return json.load(f)
@@ -25,7 +31,13 @@ def load_texts(lang: str) -> dict:
         return {}
 
 def add_points(user_id: int, points: int, db: Session) -> None:
-    """Add points to a user's account."""
+    """
+    Add points to a user's account.
+    Args:
+        user_id (int): Telegram user ID.
+        points (int): Points to add.
+        db (Session): Database session.
+    """
     try:
         user = db.query(User).filter_by(user_id=user_id).first()
         if user:
@@ -38,7 +50,9 @@ def add_points(user_id: int, points: int, db: Session) -> None:
         logger.error(f"Error adding points for user {user_id}: {e}")
 
 async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show the user's current points."""
+    """
+    Show the user's current points.
+    """
     user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
@@ -64,7 +78,9 @@ async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         )
 
 async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show the top 5 users with the highest points."""
+    """
+    Show the top 5 users with the highest points.
+    """
     user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
@@ -95,4 +111,3 @@ handlers = [
     CommandHandler("points", show_points),
     CommandHandler("leaderboard", show_leaderboard),
 ]
-
