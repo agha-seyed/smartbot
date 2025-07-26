@@ -1,207 +1,97 @@
 # بخش: قابلیت‌های اضافی
 # فایل: gamification_handler.py
-
-# فایل: handlers/question_handler.py
+# بخش: قابلیت‌های اضافی
+# فایل: gamification_handler.py
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
-    ConversationHandler,
-    ContextTypes,
-    filters,
-)
-from config import logger, ADMIN_CHAT_ID
-from utils.gsheets import append_to_sheet
+from telegram.ext import CommandHandler, ContextTypes
+from config import logger
 from utils.db import get_db, User
-from handlers.gamification_handler import add_points  # اصلاح مسیر import
 from sqlalchemy.orm import Session
-from datetime import datetime
-import json
-
-# States for ConversationHandler
-QUESTION, CONFIRM = range(2)
-
-def load_texts(lang: str) -> dict:
+import jsondef load_texts(lang: str) -> dict:
     """
-    Load language-specific texts from JSON files.
+    Load language-specific texts from JSON files.Args:
+    lang (str): Language code (e.g., 'en', 'fa', 'it').
 
-    Args:
-        lang (str): Language code (e.g., 'en', 'fa', 'it').
-
-    Returns:
-        dict: Language texts or empty dict if file not found.
+Returns:
+    dict: Language texts or empty dict if file not found.
+"""
+try:
+    with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+except FileNotFoundError:
+    logger.error(f"Language file lang/{lang}.json not found.")
+    return {}
+except json.JSONDecodeError:
+    logger.error(f"Invalid JSON in lang/{lang}.json.")
+    return {}def add_points(user_id: int, points: int, db: Session) -> None:
     """
-    try:
-        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"Language file lang/{lang}.json not found.")
-        return {}
-    except json.JSONDecodeError:
-        logger.error(f"Invalid JSON in lang/{lang}.json.")
-        return {}
-
-async def start_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    Add points to a user's account.Args:
+    user_id (int): Telegram user ID.
+    points (int): Points to add.
+    db (Session): Database session.
+"""
+try:
+    user = db.query(User).filter_by(user_id=user_id).first()
+    if user:
+        user.points = (user.points or 0) + points
+        db.commit()
+        logger.info(f"Added {points} points to user {user_id}. Total points: {user.points}")
+    else:
+        logger.error(f"User {user_id} not found for adding points.")
+except Exception as e:
+    logger.error(f"Error adding points for user {user_id}: {e}")async def show_points(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
-    Start the question submission process.
+    Show the user's current points.
     """
     user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    logger.info(f"User {user_id} started question submission.")
-
-    # Check if user has a profile
+    logger.info(f"User {user_id} requested points.")try:
     db: Session = next(get_db())
     user = db.query(User).filter_by(user_id=user_id).first()
     if not user:
         await update.message.reply_text(
             texts.get("no_profile", "Please create your profile first using /profile.")
         )
-        return ConversationHandler.END
+        return
 
-    context.user_data["user_profile"] = {
-        "first_name": user.first_name,
-        "family_name": user.family_name,
-        "age": user.age,
-        "email": user.email,
-        "field_of_study": user.field_of_study,
-        "country": user.country
-    }
-
+    points = user.points or 0
     await update.message.reply_text(
-        texts.get("question_intro", "Please enter your question:")
+        texts.get("points_status", "Your current points: {points}").format(points=points)
     )
-    return QUESTION
-
-async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+except Exception as e:
+    logger.error(f"Error showing points for user {user_id}: {e}")
+    await update.message.reply_text(
+        texts.get("error_message", "An error occurred. Please try again.")
+    )async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
-    Handle the user's question.
+    Show the top 5 users with the highest points.
     """
     user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    question = update.message.text.strip()
-
-    if not question or len(question) > 500:
+    logger.info(f"User {user_id} requested leaderboard.")try:
+    db: Session = next(get_db())
+    top_users = db.query(User).order_by(User.points.desc()).limit(5).all()
+    if not top_users:
         await update.message.reply_text(
-            texts.get("error_message", "Please enter a valid question (1-500 characters).")
+            texts.get("leaderboard_empty", "No users in the leaderboard yet.")
         )
-        return QUESTION
+        return
 
-    context.user_data["question"] = question
-    logger.info(f"User {user_id} entered question: {question}")
+    leaderboard = texts.get("leaderboard_title", "Top 5 Users:\n")
+    for i, user in enumerate(top_users, 1):
+        leaderboard += f"{i}. {user.first_name} {user.family_name} - {user.points or 0} {texts.get('points', 'points')}\n"
 
-    keyboard = [
-        [
-            InlineKeyboardButton(texts.get("yes", "Yes"), callback_data="confirm_question"),
-            InlineKeyboardButton(texts.get("no", "No"), callback_data="cancel_question"),
-        ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(leaderboard)
+except Exception as e:
+    logger.error(f"Error showing leaderboard for user {user_id}: {e}")
     await update.message.reply_text(
-        texts.get("question_confirm", "Is this your question?") + f"\n\n{question}",
-        reply_markup=reply_markup
-    )
-    return CONFIRM
+        texts.get("error_message", "An error occurred. Please try again.")
+    )# Define handlers for main.py
+handlers = [
+    CommandHandler("points", show_points),
+    CommandHandler("leaderboard", show_leaderboard),
+]
 
-async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Save the question with profile data to Google Sheets, notify admin, add points, and end the conversation.
-    """
-    query = update.callback_query
-    await query.answer()
-    user_id = update.effective_user.id
-    lang = context.user_data.get("lang", "fa")
-    texts = load_texts(lang)
-    question = context.user_data.get("question")
-    profile = context.user_data.get("user_profile")
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logger.info(f"User {user_id} confirmed question.")
-
-    try:
-        # Save to Google Sheets
-        data = [
-            user_id,
-            profile["first_name"] or "",
-            profile["family_name"] or "",
-            profile["age"] or "",
-            profile["email"] or "",
-            profile["field_of_study"] or "",
-            profile["country"] or "",
-            question,
-            "",  # Empty Answer column
-            timestamp
-        ]
-        append_to_sheet("StudentBotQuestions", data)
-
-        # Add points for asking a question
-        db: Session = next(get_db())
-        add_points(user_id, 10, db)  # Add 10 points
-
-        # Notify admin
-        admin_message = (
-            texts.get("question_admin_notify", "New question submitted:\n")
-            + f"User ID: {user_id}\n"
-            + f"Name: {profile['first_name']} {profile['family_name']}\n"
-            + f"Age: {profile['age']}\n"
-            + f"Email: {profile['email']}\n"
-            + f"Field of Study: {profile['field_of_study']}\n"
-            + f"Country: {profile['country']}\n"
-            + f"Question: {question}\n"
-            + f"Time: {timestamp}"
-        )
-        await context.bot.send_message(
-            chat_id=ADMIN_CHAT_ID,
-            text=admin_message
-        )
-
-        await query.message.reply_text(
-            texts.get("question_submitted", "Your question has been submitted successfully! You earned 10 points.")
-        )
-    except Exception as e:
-        logger.error(f"Error saving question for user {user_id}: {e}")
-        await query.message.reply_text(
-            texts.get("error_message", "An error occurred. Please try again.")
-        )
-
-    # Clear question data
-    context.user_data.pop("question", None)
-    context.user_data.pop("user_profile", None)
-    return ConversationHandler.END
-
-async def cancel_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Cancel question submission and end the conversation.
-    """
-    query = update.callback_query
-    await query.answer()
-    user_id = update.effective_user.id
-    lang = context.user_data.get("lang", "fa")
-    texts = load_texts(lang)
-    logger.info(f"User {user_id} cancelled question submission.")
-
-    await query.message.reply_text(
-        texts.get("conversation_cancelled", "Question submission cancelled.")
-    )
-    context.user_data.pop("question", None)
-    context.user_data.pop("user_profile", None)
-    return ConversationHandler.END
-
-# Define ConversationHandler
-question_conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("ask", start_question)],
-    states={
-        QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)],
-        CONFIRM: [
-            CallbackQueryHandler(confirm_question, pattern="^confirm_question$"),
-            CallbackQueryHandler(cancel_question, pattern="^cancel_question$"),
-        ],
-    },
-    fallbacks=[CommandHandler("cancel", cancel_question)],
-)
-
-# Define handlers for main.py
-handlers = [question_conv_handler]
