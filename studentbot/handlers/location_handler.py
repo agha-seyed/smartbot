@@ -1,6 +1,8 @@
 # بخش: قابلیت‌های اضافی
 # فایل: location_handler.py
 
+# فایل: handlers/location_handler.py
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -14,7 +16,7 @@ from telegram.ext import (
 from config import logger, ADMIN_CHAT_ID
 from utils.gsheets import append_to_sheet
 from utils.db import get_db, User
-from utils.gamification import add_points
+from handlers.gamification_handler import add_points  # اصلاح import
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
@@ -25,10 +27,8 @@ LOCATION, CONFIRM = range(2)
 def load_texts(lang: str) -> dict:
     """
     Load language-specific texts from JSON files.
-
     Args:
         lang (str): Language code (e.g., 'en', 'fa', 'it').
-
     Returns:
         dict: Language texts or empty dict if file not found.
     """
@@ -88,7 +88,7 @@ async def get_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    profile = context.user_data.get("user_profile"]
+    profile = context.user_data.get("user_profile")
 
     # Handle location
     if update.message.location:
@@ -138,11 +138,11 @@ async def confirm_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     """
     query = update.callback_query
     await query.answer()
-    user_id = update.effective_user.id
+    user_id = context.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     location_data = context.user_data["location_data"]
-    profile = context.user_data["user_profile"]
+    profile = context.user_data.get("user_profile")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"User {user_id} confirmed location: {location_data}")
 
@@ -203,7 +203,7 @@ async def cancel_location(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     """
     query = update.callback_query
     await query.answer()
-    user_id = update.effective_user.id
+    user_id = context.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
     logger.info(f"User {user_id} cancelled location submission.")
