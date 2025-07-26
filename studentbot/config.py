@@ -1,7 +1,6 @@
 # بخش: فایل‌های زیرساختی
 # فایل: config.py
 
-
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -9,7 +8,7 @@ from logging.handlers import RotatingFileHandler
 def validate_env_vars():
     """Validate that all required environment variables are set."""
     required_vars = [
-        "BOT_TOKEN",
+        "TELEGRAM_TOKEN",  # تغییر از BOT_TOKEN به TELEGRAM_TOKEN
         "REDIS_URL",
         "GOOGLE_CREDS",
         "ADMIN_CHAT_ID",
@@ -27,7 +26,7 @@ def validate_env_vars():
 validate_env_vars()
 
 # Environment variables
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")  # تغییر از BOT_TOKEN به TELEGRAM_TOKEN
 REDIS_URL = os.getenv("REDIS_URL")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDS", "/etc/secrets/credentials.json")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Currently unused, reserved for future AI features
