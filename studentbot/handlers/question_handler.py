@@ -1,7 +1,5 @@
 # بخش: Handlerهای اصلی
 # فایل: question_handler.py
-
-)
 # فایل: handlers/question_handler.py
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
