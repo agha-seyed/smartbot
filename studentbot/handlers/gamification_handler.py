@@ -1,6 +1,5 @@
 # بخش: قابلیت‌های اضافی
 # فایل: gamification_handler.py
-
 # فایل: handlers/question_handler.py
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
