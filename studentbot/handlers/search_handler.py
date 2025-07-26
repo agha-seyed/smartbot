@@ -1,5 +1,6 @@
 # بخش: قابلیت‌های اضافی
 # فایل: search_handler.py
+# فایل: handlers/search_handler.py
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -13,8 +14,7 @@ from telegram.ext import (
 )
 from config import logger, ADMIN_CHAT_ID
 from utils.gsheets import append_to_sheet
-from utils.db import get_db, User
-from utils.gamification import add_points
+from utils.db import get_db, User, add_points
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
