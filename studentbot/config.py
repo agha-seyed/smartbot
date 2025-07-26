@@ -30,7 +30,8 @@ def validate_env_vars():
         "WEBHOOK_SECRET",
         "QUESTIONS_SHEET_NAME",
         "OPENWEATHERMAP_API_KEY",
-        "PORT"
+        "PORT",
+        "DATABASE_URL"  # اضافه شده
     ]
     missing_vars = []
     for var in required_vars:
@@ -54,6 +55,7 @@ WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 QUESTIONS_SHEET_NAME = os.getenv("QUESTIONS_SHEET_NAME")
 WEATHER_API_KEY = os.getenv("OPENWEATHERMAP_API_KEY")
 PORT = int(os.getenv("PORT", 8080))
+DATABASE_URL = os.getenv("DATABASE_URL")  # اضافه شده
 
 # ✳️ بررسی وجود فایل Google Credentials
 def verify_google_creds():
