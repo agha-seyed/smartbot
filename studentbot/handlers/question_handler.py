@@ -1,205 +1,38 @@
-# بخش: Handlerهای اصلی
-# فایل: question_handler.py
-# فایل: handlers/question_handler.py
-# فایل: handlers/question_handler.py
-
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import (
-    Application,
     CommandHandler,
     MessageHandler,
-    CallbackQueryHandler,
-    ConversationHandler,
     ContextTypes,
     filters,
 )
-from config import logger, ADMIN_CHAT_ID
-from utils.gsheets import append_to_sheet
-from utils.db import get_db, User
-from handlers.gamification_handler import add_points
-from sqlalchemy.orm import Session
-from datetime import datetime
-import json
+from studentbot.utils.ai_utils import get_best_answer
+from studentbot.utils.db import get_db, FAQ
+from studentbot.config import ADMIN_CHAT_ID, logger
 
-# States for ConversationHandler
-QUESTION, CONFIRM = range(2)
-
-def load_texts(lang: str) -> dict:
+async def ask_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Load language-specific texts from JSON files.
-    Args:
-        lang (str): Language code (e.g., 'en', 'fa', 'it').
-    Returns:
-        dict: Language texts or empty dict if file not found.
+    Handles a user's question, tries to find an answer in the FAQs,
+    and forwards the question to the admin if no answer is found.
     """
-    try:
-        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"Language file lang/{lang}.json not found.")
-        return {}
-    except json.JSONDecodeError:
-        logger.error(f"Invalid JSON in lang/{lang}.json.")
-        return {}
+    question = update.message.text
+    user = update.effective_user
 
-async def start_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Start the question submission process.
-    """
-    user_id = update.effective_user.id
-    lang = context.user_data.get("lang", "fa")
-    texts = load_texts(lang)
-    logger.info(f"User {user_id} started question submission.")
+    db_session = next(get_db())
+    faqs = db_session.query(FAQ).all()
 
-    # Check if user has a profile
-    db: Session = next(get_db())
-    user = db.query(User).filter_by(user_id=user_id).first()
-    if not user:
-        await update.message.reply_text(
-            texts.get("no_profile", "Please create your profile first using /profile.")
-        )
-        return ConversationHandler.END
+    answer = get_best_answer(question, faqs)
 
-    context.user_data["user_profile"] = {
-        "first_name": user.first_name,
-        "family_name": user.family_name,
-        "age": user.age,
-        "email": user.email,
-        "field_of_study": user.field_of_study,
-        "country": user.country
-    }
+    if answer:
+        await update.message.reply_text(answer)
+    else:
+        await update.message.reply_text("I could not find an answer to your question. I will forward it to an admin.")
 
-    await update.message.reply_text(
-        texts.get("question_intro", "Please enter your question:")
-    )
-    return QUESTION
-
-async def get_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Handle the user's question.
-    """
-    user_id = update.effective_user.id
-    lang = context.user_data.get("lang", "fa")
-    texts = load_texts(lang)
-    question = update.message.text.strip()
-
-    if not question or len(question) > 500:
-        await update.message.reply_text(
-            texts.get("error_message", "Please enter a valid question (1-500 characters).")
-        )
-        return QUESTION
-
-    context.user_data["question"] = question
-    logger.info(f"User {user_id} entered question: {question}")
-
-    keyboard = [
-        [
-            InlineKeyboardButton(texts.get("yes", "Yes"), callback_data="confirm_question"),
-            InlineKeyboardButton(texts.get("no", "No"), callback_data="cancel_question"),
-        ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        texts.get("question_confirm", "Is this your question?") + f"\n\n{question}",
-        reply_markup=reply_markup
-    )
-    return CONFIRM
-
-async def confirm_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Save the question with profile data to Google Sheets, notify admin, add points, and end the conversation.
-    """
-    query = update.callback_query
-    await query.answer()
-    user_id = update.effective_user.id
-    lang = context.user_data.get("lang", "fa")
-    texts = load_texts(lang)
-    question = context.user_data.get("question")
-    profile = context.user_data.get("user_profile")
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    logger.info(f"User {user_id} confirmed question.")
-
-    try:
-        # Save to Google Sheets
-        data = [
-            user_id,
-            profile["first_name"] or "",
-            profile["family_name"] or "",
-            profile["age"] or "",
-            profile["email"] or "",
-            profile["field_of_study"] or "",
-            profile["country"] or "",
-            question,
-            "",  # Empty Answer column
-            timestamp
-        ]
-        append_to_sheet("StudentBotQuestions", data)
-
-        # Add points for asking a question
-        db: Session = next(get_db())
-        add_points(user_id, 10, db)  # Add 10 points
-
-        # Notify admin
         admin_message = (
-            texts.get("question_admin_notify", "New question submitted:\n")
-            + f"User ID: {user_id}\n"
-            + f"Name: {profile['first_name']} {profile['family_name']}\n"
-            + f"Age: {profile['age']}\n"
-            + f"Email: {profile['email']}\n"
-            + f"Field of Study: {profile['field_of_study']}\n"
-            + f"Country: {profile['country']}\n"
-            + f"Question: {question}\n"
-            + f"Time: {timestamp}"
+            f"New Question from {user.full_name} (ID: {user.id}):\n\n"
+            f"{question}"
         )
-        await context.bot.send_message(
-            chat_id=ADMIN_CHAT_ID,
-            text=admin_message
-        )
+        await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=admin_message)
 
-        await query.message.reply_text(
-            texts.get("question_submitted", "Your question has been submitted successfully! You earned 10 points.")
-        )
-    except Exception as e:
-        logger.error(f"Error saving question for user {user_id}: {e}")
-        await query.message.reply_text(
-            texts.get("error_message", "An error occurred. Please try again.")
-        )
-
-    # Clear question data
-    context.user_data.pop("question", None)
-    context.user_data.pop("user_profile", None)
-    return ConversationHandler.END
-
-async def cancel_question(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """
-    Cancel question submission and end the conversation.
-    """
-    query = update.callback_query
-    await query.answer()
-    user_id = update.effective_user.id
-    lang = context.user_data.get("lang", "fa")
-    texts = load_texts(lang)
-    logger.info(f"User {user_id} cancelled question submission.")
-
-    await query.message.reply_text(
-        texts.get("conversation_cancelled", "Question submission cancelled.")
-    )
-    context.user_data.pop("question", None)
-    context.user_data.pop("user_profile", None)
-    return ConversationHandler.END
-
-# Define ConversationHandler
-question_conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("ask", start_question)],
-    states={
-        QUESTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_question)],
-        CONFIRM: [
-            CallbackQueryHandler(confirm_question, pattern="^confirm_question$"),
-            CallbackQueryHandler(cancel_question, pattern="^cancel_question$"),
-        ],
-    },
-    fallbacks=[CommandHandler("cancel", cancel_question)],
-)
-
-# Define handlers for main.py
-handlers = [question_conv_handler]
+handlers = [
+    MessageHandler(filters.TEXT & ~filters.COMMAND, ask_question)
+]

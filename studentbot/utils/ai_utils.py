@@ -1,22 +1,35 @@
 import requests
-from studentbot.config import HUGGINGFACE_API_KEY, HUGGINGFACE_API_URL
+from studentbot.config import HUGGINGFACE_API_KEY, HUGGINGFACE_API_URL, SIMILARITY_THRESHOLD
 
-def get_similarity_score(question: str, reference: str) -> float:
+def get_best_answer(question: str, faqs: list) -> str | None:
     """
-    Calculates the similarity score between a question and a reference text
+    Finds the best answer to a question from a list of FAQs
     using the HuggingFace Inference API.
     """
     if not HUGGINGFACE_API_KEY or not HUGGINGFACE_API_URL:
-        return 0.0
+        return None
 
-    try:
-        response = requests.post(
-            HUGGINGFACE_API_URL,
-            headers={"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"},
-            json={"inputs": [question, reference]}
-        )
-        response.raise_for_status()
-        return response.json().get("score", 0.0)
-    except requests.exceptions.RequestException as e:
-        print(f"Error calling HuggingFace API: {e}")
-        return 0.0
+    best_score = 0
+    best_answer = None
+
+    for faq in faqs:
+        try:
+            response = requests.post(
+                HUGGINGFACE_API_URL,
+                headers={"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"},
+                json={"inputs": [question, faq.question]}
+            )
+            response.raise_for_status()
+            score = response.json().get("score", 0.0)
+
+            if score > best_score:
+                best_score = score
+                best_answer = faq.answer
+        except requests.exceptions.RequestException as e:
+            print(f"Error calling HuggingFace API: {e}")
+            continue
+
+    if best_score > SIMILARITY_THRESHOLD:
+        return best_answer
+    else:
+        return None

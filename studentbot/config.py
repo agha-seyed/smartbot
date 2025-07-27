@@ -58,6 +58,8 @@ PORT = int(os.getenv("PORT", 8080))
 DATABASE_URL = os.getenv("DATABASE_URL")  # اضافه شده
 HUGGINGFACE_API_URL = os.getenv("HUGGINGFACE_API_URL")
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.8"))
+WHISPER_API_URL = os.getenv("WHISPER_API_URL")
 
 # ✳️ بررسی وجود فایل Google Credentials
 def verify_google_creds():
