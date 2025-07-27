@@ -61,7 +61,12 @@ async def show_dynamic_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     message = update.message or update.callback_query.message
-    await message.reply_text("Please select an option:", reply_markup=reply_markup)
+
+    # Create breadcrumbs
+    breadcrumb_path = " > ".join(path_parts).replace("_", " ").title()
+    menu_text = f"📍 {breadcrumb_path}\n\nPlease select an option:"
+
+    await message.reply_text(menu_text, reply_markup=reply_markup)
 
 async def dynamic_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -96,21 +101,19 @@ async def dynamic_menu_callback(update: Update, context: ContextTypes.DEFAULT_TY
         from .submenu_handler import submenu_callback
         await submenu_callback(update, context)
 
+from studentbot.utils.db import get_db, Scholarship
+
 async def fetch_scholarships(context: ContextTypes.DEFAULT_TYPE):
     """
-    Fetches scholarship data and returns a list of buttons.
+    Fetches scholarship data from the database and returns a list of buttons.
     """
-    # In a real application, you would fetch this from the database
-    # For now, we'll just return some dummy data
-    dummy_scholarships = [
-        {"id": 1, "title": "Scholarship A"},
-        {"id": 2, "title": "Scholarship B"},
-    ]
+    db_session = next(get_db())
+    scholarships = db_session.query(Scholarship).all()
 
     buttons = []
-    for scholarship in dummy_scholarships:
-        button_text = scholarship["title"]
-        callback_data = f"scholarship.{scholarship['id']}"
+    for scholarship in scholarships:
+        button_text = scholarship.title
+        callback_data = f"scholarship.{scholarship.id}"
         buttons.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
 
     return buttons

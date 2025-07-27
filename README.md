@@ -54,11 +54,13 @@ The bot is built with Python and the `python-telegram-bot` library. It follows a
 
 ## Running Tests
 
-To run the test suite, use the following command:
+To run the test suite within the Docker environment, you can use the provided script:
 
 ```bash
-pytest
+bash run_tests.sh
 ```
+
+This command will start the services, build the bot image if it doesn't exist, and run the `pytest` test suite. The `--abort-on-container-exit` flag will stop all services as soon as the tests are finished.
 
 ## Deployment on Render
 
