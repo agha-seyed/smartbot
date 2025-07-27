@@ -21,6 +21,7 @@ from handlers.admin_handler import handlers as admin_handlers
 from handlers.search_handler import handlers as search_handlers
 from handlers.menu_handler import handlers as menu_handlers
 from handlers.submenu_handler import handlers as submenu_handlers
+from handlers.guide_handler import handlers as guide_handlers
 
 async def set_bot_commands(application):
     """
@@ -70,7 +71,8 @@ async def main():
         admin_handlers +
         search_handlers +
         menu_handlers +
-        submenu_handlers
+        submenu_handlers +
+        guide_handlers
     )
 
     for handler in all_handlers:
