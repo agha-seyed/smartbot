@@ -7,43 +7,32 @@ from config import logger
 import json
 import os
 
-def load_texts(lang: str) -> dict:
-    """
-    Load language-specific texts from JSON files.
-
-    Args:
-        lang (str): Language code (e.g., 'en', 'fa', 'it').
-
-    Returns:
-        dict: Language texts or empty dict if file not found.
-    """
-    try:
-        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"Language file lang/{lang}.json not found.")
-        return {}
-    except json.JSONDecodeError:
-        logger.error(f"Invalid JSON in lang/{lang}.json.")
-        return {}
+from utils.menu_utils import load_texts
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
-    Handle the /start command and show language selection menu.
+    Handle the /start command.
+    If language is not set, show language selection. Otherwise, show main menu.
     """
-    logger.info(f"User {update.effective_user.id} started the bot.")
-    keyboard = [
-        [
-            InlineKeyboardButton("English 🇬🇧", callback_data="lang_en"),
-            InlineKeyboardButton("فارسی 🇮🇷", callback_data="lang_fa"),
-            InlineKeyboardButton("Italiano 🇮🇹", callback_data="lang_it"),
+    user_id = update.effective_user.id
+    logger.info(f"User {user_id} started the bot.")
+
+    if context.user_data.get("lang"):
+        from handlers.menu_handler import show_main_menu
+        await show_main_menu(update, context)
+    else:
+        keyboard = [
+            [
+                InlineKeyboardButton("English 🇬🇧", callback_data="lang_en"),
+                InlineKeyboardButton("فارسی 🇮🇷", callback_data="lang_fa"),
+                InlineKeyboardButton("Italiano 🇮🇹", callback_data="lang_it"),
+            ]
         ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "Please select your language / لطفاً زبان خود را انتخاب کنید / Scegli la tua lingua:",
-        reply_markup=reply_markup
-    )
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            "Please select your language / لطفاً زبان خود را انتخاب کنید / Scegli la tua lingua:",
+            reply_markup=reply_markup
+        )
 
 async def select_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -59,9 +48,9 @@ async def select_language(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     welcome_message = texts.get("welcome_message", "Welcome to Scholarino Bot!")
     await query.message.reply_text(welcome_message, parse_mode="HTML")
 
-    # Trigger main menu (assuming menu_handler is registered)
-    from handlers.menu_handler import show_main_menu
-    await show_main_menu(update, context)
+    # Trigger main menu
+    from utils.menu_utils import show_main_menu
+    await show_main_menu(query, context)
 
 # Define handlers for main.py
 handlers = [

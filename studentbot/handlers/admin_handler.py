@@ -25,19 +25,7 @@ import bcrypt
 # States for ConversationHandler
 LOGIN_USERNAME, LOGIN_PASSWORD, ADMIN_MENU, ANSWER_QUESTION, ANSWER_TEXT, BROADCAST_MESSAGE, MANAGE_SCHOLARSHIPS, ADD_SCHOLARSHIP_NAME, ADD_SCHOLARSHIP_DESC_EN, ADD_SCHOLARSHIP_DESC_FA, ADD_SCHOLARSHIP_DESC_IT, ADD_SCHOLARSHIP_LINK, ADD_SCHOLARSHIP_COUNTRY, ADD_SCHOLARSHIP_FIELD, DELETE_SCHOLARSHIP, MANAGE_USER, MANAGE_USER_ACTION = range(17)
 
-def load_texts(lang: str) -> dict:
-    """
-    Load language-specific texts from JSON files.
-    """
-    try:
-        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"Language file lang/{lang}.json not found.")
-        return {}
-    except json.JSONDecodeError:
-        logger.error(f"Invalid JSON in lang/{lang}.json.")
-        return {}
+from utils.menu_utils import load_texts
 
 def load_scholarships() -> dict:
     """

@@ -1,6 +1,7 @@
 # بخش: منوها و رابط کاربری
 # فایل: submenu_handler.py
 
+import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -11,19 +12,7 @@ from config import logger
 from utils.db import get_db, User
 from sqlalchemy.orm import Session
 
-def load_texts(lang: str) -> dict:
-    """
-    Load language-specific texts from JSON files.
-    """
-    try:
-        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"Language file lang/{lang}.json not found.")
-        return {}
-    except json.JSONDecodeError:
-        logger.error(f"Invalid JSON in lang/{lang}.json.")
-        return {}
+from utils.menu_utils import show_main_menu, load_texts
 
 async def submenu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -90,47 +79,6 @@ async def submenu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             texts.get("error_message", "An error occurred. Please try again.")
         )
 
-async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    Show the main menu (reused from menu_handler).
-    """
-    user_id = update.effective_user.id
-    lang = context.user_data.get("lang", "fa")
-    texts = load_texts(lang)
-    logger.info(f"User {user_id} requested main menu from submenu.")
-
-    db: Session = next(get_db())
-    user = db.query(User).filter_by(user_id=user_id).first()
-    if not user:
-        await update.callback_query.message.reply_text(
-            texts.get("no_profile", "Please create your profile first using /profile.")
-        )
-        return
-
-    keyboard = [
-        [InlineKeyboardButton(texts.get("menu_profile", "Profile"), callback_data="submenu_profile")],
-        [InlineKeyboardButton(texts.get("menu_search", "Search"), callback_data="submenu_search")],
-        [InlineKeyboardButton(texts.get("menu_apps", "Apps"), callback_data="menu_apps")],
-        [InlineKeyboardButton(texts.get("menu_points", "Points"), callback_data="menu_points")],
-        [InlineKeyboardButton(texts.get("menu_leaderboard", "Leaderboard"), callback_data="menu_leaderboard")],
-        [InlineKeyboardButton(texts.get("menu_question", "Question"), callback_data="menu_question")],
-        [InlineKeyboardButton(texts.get("menu_consult", "Consult"), callback_data="menu_consult")],
-        [InlineKeyboardButton(texts.get("menu_weather", "Weather"), callback_data="menu_weather")],
-        [InlineKeyboardButton(texts.get("menu_isee", "ISEE"), callback_data="menu_isee")],
-        [InlineKeyboardButton(texts.get("menu_location", "Location"), callback_data="menu_location")],
-        [InlineKeyboardButton(texts.get("menu_feedback", "Feedback"), callback_data="menu_feedback")]
-    ]
-
-    if context.user_data.get("is_admin", False):
-        keyboard.append([InlineKeyboardButton(texts.get("menu_admin", "Admin Panel"), callback_data="menu_admin")])
-        keyboard.append([InlineKeyboardButton(texts.get("menu_login", "Admin Login"), callback_data="menu_login")])
-
-    keyboard.append([InlineKeyboardButton(texts.get("cancel", "Cancel"), callback_data="cancel_menu")])
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.callback_query.message.reply_text(
-        texts.get("menu_prompt", "Please select an option from the main menu:"),
-        reply_markup=reply_markup
-    )
 
 # Define handlers for main.py
 handlers = [
