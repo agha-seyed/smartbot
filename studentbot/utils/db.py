@@ -47,6 +47,11 @@ class Feedback(Base):
     rating = Column(String)
     comment = Column(String, nullable=True)
     timestamp = Column(String)
+    user_id = Column(Integer)
+    step_id = Column(String)
+    rating = Column(String)
+    comment = Column(String, nullable=True)
+    timestamp = Column(String)
 
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)

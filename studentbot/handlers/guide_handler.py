@@ -7,6 +7,8 @@ from telegram.ext import (
     ContextTypes,
 )
 from studentbot.config import logger
+from studentbot.utils.menu_utils import load_texts
+from studentbot.utils.lang import language_decorator
 
 # States for ConversationHandler
 GUIDE_STEP = 0
@@ -22,6 +24,7 @@ def load_knowledge_base():
         logger.error(f"Error loading knowledge base: {e}")
         return {}
 
+@language_decorator
 async def start_guide(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Starts the step-by-step guide.
@@ -55,12 +58,13 @@ async def show_guide_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = []
     row = []
+    texts = load_texts(user_lang)
     if step_index > 0:
-        row.append(InlineKeyboardButton("⬅️ Previous", callback_data="guide.prev"))
+        row.append(InlineKeyboardButton(texts.get("prev_step", "⬅️ Previous"), callback_data="guide.prev"))
     if step_index < len(steps) - 1:
-        row.append(InlineKeyboardButton("Next ➡️", callback_data="guide.next"))
+        row.append(InlineKeyboardButton(texts.get("next_step", "Next ➡️"), callback_data="guide.next"))
     keyboard.append(row)
-    keyboard.append([InlineKeyboardButton("⏹️ Back to Menu", callback_data="guide.menu")])
+    keyboard.append([InlineKeyboardButton(texts.get("back_to_menu", "⏹️ Back to Menu"), callback_data="guide.menu")])
 
     # Add feedback buttons
     feedback_keyboard = [

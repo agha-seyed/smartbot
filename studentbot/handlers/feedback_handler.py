@@ -18,14 +18,21 @@ async def ask_for_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     """
     Asks the user for feedback on a specific step.
     """
+    query = update.callback_query
+    await query.answer()
+
+    # The step_id is passed in the callback_data
+    step_id = query.data.split('.')[-1]
+    context.user_data['current_guide_step_id'] = step_id
+
     keyboard = [
         [
-            InlineKeyboardButton("👍", callback_data="feedback.positive"),
-            InlineKeyboardButton("👎", callback_data="feedback.negative"),
+            InlineKeyboardButton("👍", callback_data=f"feedback.positive.{step_id}"),
+            InlineKeyboardButton("👎", callback_data=f"feedback.negative.{step_id}"),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Was this step helpful?", reply_markup=reply_markup)
+    await query.message.reply_text("Was this step helpful?", reply_markup=reply_markup)
     return GET_RATING
 
 async def get_rating(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -35,10 +42,11 @@ async def get_rating(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
-    rating = query.data.split('.')[1]
+    _, rating, step_id = query.data.split('.')
     context.user_data['feedback_rating'] = rating
+    context.user_data['current_guide_step_id'] = step_id
 
-    await query.message.reply_text("Thank you for your feedback! Would you like to add a comment?")
+    await query.message.reply_text("Thank you for your feedback! Would you like to add a comment? (or /skip)")
     return GET_COMMENT
 
 async def get_comment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -48,7 +56,7 @@ async def get_comment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user = update.effective_user
     comment = update.message.text
     rating = context.user_data.get('feedback_rating')
-    step_id = context.user_data.get('current_guide_step_id', 'unknown') # Assuming this is set in the guide_handler
+    step_id = context.user_data.get('current_guide_step_id', 'unknown')
 
     db_session = next(get_db())
     new_feedback = Feedback(
@@ -99,7 +107,7 @@ async def skip_comment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     )
     await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=admin_message)
 
-    await update.callback_query.message.reply_text("Thank you for your valuable feedback!")
+    await update.message.reply_text("Thank you for your valuable feedback!")
 
     return ConversationHandler.END
 
@@ -110,7 +118,7 @@ feedback_conv_handler = ConversationHandler(
         GET_RATING: [CallbackQueryHandler(get_rating, pattern="^feedback\..*")],
         GET_COMMENT: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, get_comment),
-            CallbackQueryHandler(skip_comment, pattern="^skip_comment$")
+            CommandHandler("skip", skip_comment)
         ],
     },
     fallbacks=[],

@@ -39,7 +39,8 @@ async def set_bot_commands(application):
         BotCommand("location", "اشتراک‌گذاری موقعیت مکانی"),
         BotCommand("feedback", "ارسال بازخورد"),
         BotCommand("apps", "کاوش اپلیکیشن‌ها"),
-        BotCommand("search", "جستجوی بورسیه‌ها و اپلیکیشن‌ها")
+        BotCommand("search", "جستجوی بورسیه‌ها و اپلیکیشن‌ها"),
+        BotCommand("guide", "راهنمای گام به گام")
     ]
     await application.bot.set_my_commands(commands)
 

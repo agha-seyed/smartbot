@@ -1,0 +1,33 @@
+{
+  "main_menu": {
+    "buttons": {
+      "profile": {
+        "en": "My Profile",
+        "fa": "پروفایل من",
+        "it": "Il mio profilo"
+      },
+      "scholarships": {
+        "en": "Scholarships",
+        "fa": "بورسیه‌ها",
+        "it": "Borse di studio"
+      },
+      "help": {
+        "en": "Help",
+        "fa": "راهنما",
+        "it": "Aiuto"
+      }
+    },
+    "submenus": {
+      "scholarships": {
+        "dynamic_data": "fetch_scholarships",
+        "buttons": {
+          "back": {
+            "en": "Back",
+            "fa": "برگشت",
+            "it": "Indietro"
+          }
+        }
+      }
+    }
+  }
+}

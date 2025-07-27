@@ -41,12 +41,12 @@ class TestFeedbackHandler(unittest.IsolatedAsyncioTestCase):
         # Mock the Update and Context objects
         update = MagicMock(spec=Update)
         update.effective_user = User(id=123, first_name="Test", is_bot=False, full_name="Test User")
-        query = MagicMock()
-        update.callback_query = query
 
         context = MagicMock(spec=ContextTypes)
         context.user_data = {'feedback_rating': 'negative', 'current_guide_step_id': '2'}
         context.bot.send_message = AsyncMock()
+        update.message.reply_text = AsyncMock()
+
 
         # Mock the database session
         mock_db_session = MagicMock()
@@ -59,7 +59,7 @@ class TestFeedbackHandler(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, ConversationHandler.END)
         mock_db_session.add.assert_called_once()
         context.bot.send_message.assert_called_once()
-        query.message.reply_text.assert_called_once_with("Thank you for your valuable feedback!")
+        update.message.reply_text.assert_called_once_with("Thank you for your valuable feedback!")
 
 
     async def test_ask_for_feedback(self):
@@ -67,12 +67,15 @@ class TestFeedbackHandler(unittest.IsolatedAsyncioTestCase):
         Test the ask_for_feedback function.
         """
         update = MagicMock(spec=Update)
-        update.message.reply_text = AsyncMock()
+        query = MagicMock()
+        query.data = "feedback.positive.1"
+        update.callback_query = query
+        query.message.reply_text = AsyncMock()
 
         result = await ask_for_feedback(update, MagicMock())
 
         self.assertEqual(result, GET_RATING)
-        update.message.reply_text.assert_called_once()
+        query.message.reply_text.assert_called_once()
 
     async def test_get_rating(self):
         """
@@ -80,7 +83,7 @@ class TestFeedbackHandler(unittest.IsolatedAsyncioTestCase):
         """
         update = MagicMock(spec=Update)
         query = MagicMock()
-        query.data = "feedback.positive"
+        query.data = "feedback.positive.1"
         update.callback_query = query
         context = MagicMock(spec=ContextTypes)
         context.user_data = {}
@@ -89,7 +92,7 @@ class TestFeedbackHandler(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result, GET_COMMENT)
         self.assertEqual(context.user_data['feedback_rating'], 'positive')
-        query.message.reply_text.assert_called_once_with("Thank you for your feedback! Would you like to add a comment?")
+        query.message.reply_text.assert_called_once_with("Thank you for your feedback! Would you like to add a comment? (or /skip)")
 
 if __name__ == '__main__':
     unittest.main()
