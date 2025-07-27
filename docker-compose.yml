@@ -1,0 +1,33 @@
+services:
+  bot:
+    build: .
+    command: python -m studentbot.main
+    env_file:
+      - .env
+    volumes:
+      - .:/usr/src/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - studentbot-net
+
+  db:
+    image: postgres:14-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+    networks:
+      - studentbot-net
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - studentbot-net
+
+networks:
+  studentbot-net:
+
+volumes:
+  postgres_data:
