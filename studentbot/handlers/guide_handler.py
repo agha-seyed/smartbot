@@ -80,7 +80,11 @@ async def show_guide_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Split message if it's too long
     if len(message_text) > 4096:
         for i in range(0, len(message_text), 4096):
-            await update.message.reply_text(message_text[i:i+4096], parse_mode="MarkdownV2")
+            # Only the last part of the message will have the keyboard
+            if i + 4096 >= len(message_text):
+                await update.message.reply_text(message_text[i:i+4096], reply_markup=reply_markup, parse_mode="MarkdownV2")
+            else:
+                await update.message.reply_text(message_text[i:i+4096], parse_mode="MarkdownV2")
     else:
         if update.callback_query:
             await update.callback_query.message.edit_text(message_text, reply_markup=reply_markup, parse_mode="MarkdownV2")

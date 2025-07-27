@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: studentbot
+    env: docker
+    repo: https://github.com/your-username/studentbot.git # Replace with your repository URL
+    branch: main
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: TELEGRAM_TOKEN
+        fromSecret: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: studentbot-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: studentbot-redis
+          property: connectionString
+      - key: ADMIN_CHAT_ID
+        fromSecret: true
+      - key: GOOGLE_CREDS
+        fromSecret: true
+      - key: BASE_URL
+        fromService:
+          type: web
+          name: studentbot
+          property: url
+      - key: WEBHOOK_SECRET
+        fromSecret: true
+      - key: QUESTIONS_SHEET_NAME
+        fromSecret: true
+      - key: OPENWEATHERMAP_API_KEY
+        fromSecret: true
+      - key: HUGGINGFACE_API_URL
+        fromSecret: true
+      - key: HUGGINGFACE_API_KEY
+        fromSecret: true
+      - key: SIMILARITY_THRESHOLD
+        fromSecret: true
+      - key: WHISPER_API_URL
+        fromSecret: true
+
+databases:
+  - name: studentbot-db
+    databaseName: studentbot
+    user: studentbot
+
+redis:
+  - name: studentbot-redis
+    plan: free

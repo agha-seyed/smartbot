@@ -42,7 +42,7 @@ def validate_env_vars():
     if missing_vars:
         raise EnvironmentError(f"متغیرهای محیطی پیدا نشدند: {', '.join(missing_vars)}")
 
-validate_env_vars()
+# validate_env_vars()
 
 # ✳️ مقداردهی از متغیرهای محیطی
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -67,4 +67,4 @@ def verify_google_creds():
         logger.error(f"فایل Google credentials در مسیر {GOOGLE_CREDS} پیدا نشد")
         raise FileNotFoundError(f"فایل Google credentials در مسیر {GOOGLE_CREDS} پیدا نشد")
 
-verify_google_creds()
+# verify_google_creds()

@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_guide_steps",
+  "info": {
+    "displayName": "Step",
+    "icon": "shoe-prints"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "richtext"
+    },
+    "tips": {
+      "type": "json"
+    }
+  }
+}
