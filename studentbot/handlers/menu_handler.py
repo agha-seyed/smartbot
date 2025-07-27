@@ -1,69 +1,121 @@
-# بخش: منوها و رابط کاربری
-# فایل: menu_handler.py
-
 import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    Application,
     CommandHandler,
     CallbackQueryHandler,
     ContextTypes,
 )
-from config import logger
-from utils.db import get_db, User
-from sqlalchemy.orm import Session
+from studentbot.config import logger
+from studentbot.utils.menu_utils import load_texts
 
-from utils.menu_utils import show_main_menu, load_texts
-
-async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+def load_menu_structure():
     """
-    Handle main menu selections.
+    Loads the menu structure from the menus.json file.
+    """
+    try:
+        with open('studentbot/config/menus.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.error(f"Error loading menu structure: {e}")
+        return {}
+
+async def show_dynamic_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, menu_path: str = "main_menu"):
+    """
+    Displays a dynamic menu based on the user's path.
+    """
+    user_lang = context.user_data.get("lang", "fa")
+    menu_structure = load_menu_structure()
+
+    # Navigate to the correct menu
+    path_parts = menu_path.split('.')
+    current_menu = menu_structure
+    for part in path_parts:
+        current_menu = current_menu.get(part, {})
+
+    if not current_menu:
+        await update.callback_query.message.reply_text("Menu not found.")
+        return
+
+    buttons = current_menu.get("buttons", {})
+    keyboard = []
+
+    if "dynamic_data" in current_menu:
+        dynamic_func_name = current_menu["dynamic_data"]
+        if dynamic_func_name in globals():
+            dynamic_buttons = await globals()[dynamic_func_name](context)
+            keyboard.extend(dynamic_buttons)
+
+    for key, value in buttons.items():
+        button_text = value.get(user_lang, key)
+        callback_data = f"menu.{menu_path}.{key}"
+        keyboard.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
+
+    # Add back button if not in main menu
+    if menu_path != "main_menu":
+        parent_path = ".".join(path_parts[:-2])
+        if not parent_path:
+            parent_path = "main_menu"
+        back_button_text = load_texts(user_lang).get("back", "Back")
+        keyboard.append([InlineKeyboardButton(back_button_text, callback_data=f"menu.{parent_path}")])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    message = update.message or update.callback_query.message
+    await message.reply_text("Please select an option:", reply_markup=reply_markup)
+
+async def dynamic_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles all dynamic menu callbacks.
     """
     query = update.callback_query
     await query.answer()
-    user_id = update.effective_user.id
-    lang = context.user_data.get("lang", "fa")
-    texts = load_texts(lang)
-    option = query.data
-    logger.info(f"User {user_id} selected menu option: {option}")
 
-    if option == "cancel_menu":
-        await query.message.reply_text(
-            texts.get("conversation_cancelled", "Operation cancelled.")
-        )
-        return
+    parts = query.data.split('.')
+    menu_path = ".".join(parts[1:])
 
-    commands = {
-        "menu_profile": "/profile",
-        "menu_search": "/search",
-        "menu_apps": "/apps",
-        "menu_points": "/points",
-        "menu_leaderboard": "/leaderboard",
-        "menu_question": "/ask",
-        "menu_consult": "/consult",
-        "menu_weather": "/weather",
-        "menu_isee": "/isee",
-        "menu_location": "/location",
-        "menu_feedback": "/feedback",
-        "menu_admin": "/admin",
-        "menu_login": "/login"
-    }
+    # Find the menu in the structure
+    menu_structure = load_menu_structure()
+    current_menu = menu_structure
+    for part in parts[1:]:
+        if 'submenus' in current_menu and part in current_menu['submenus']:
+            current_menu = current_menu['submenus'][part]
+        elif 'buttons' in current_menu and part in current_menu['buttons']:
+            # This is a leaf node, trigger an action
+            action = part
+            logger.info(f"User {update.effective_user.id} selected action '{action}' from menu '{'.'.join(parts[1:-1])}'")
+            await query.message.reply_text(f"You selected: {action}")
+            return
+        else:
+            current_menu = None
+            break
 
-    if option in commands:
-        await query.message.reply_text(
-            texts.get("menu_prompt", "Please select an option from the main menu:") + f"\nExecuting {commands[option]}..."
-        )
-        context.user_data["next_command"] = commands[option]
-        # Simulate command execution
-        update.message.text = commands[option]
-        await context.application.process_update(update)
+    if current_menu:
+        await show_dynamic_menu(update, context, menu_path=menu_path)
     else:
-        await query.message.reply_text(
-            texts.get("error_message", "An error occurred. Please try again.")
-        )
+        # Fallback to the old logic if the menu is not in the new structure
+        from .submenu_handler import submenu_callback
+        await submenu_callback(update, context)
 
-# Define handlers for main.py
+async def fetch_scholarships(context: ContextTypes.DEFAULT_TYPE):
+    """
+    Fetches scholarship data and returns a list of buttons.
+    """
+    # In a real application, you would fetch this from the database
+    # For now, we'll just return some dummy data
+    dummy_scholarships = [
+        {"id": 1, "title": "Scholarship A"},
+        {"id": 2, "title": "Scholarship B"},
+    ]
+
+    buttons = []
+    for scholarship in dummy_scholarships:
+        button_text = scholarship["title"]
+        callback_data = f"scholarship.{scholarship['id']}"
+        buttons.append([InlineKeyboardButton(button_text, callback_data=callback_data)])
+
+    return buttons
+
 handlers = [
-    CommandHandler("menu", show_main_menu),
-    CallbackQueryHandler(menu_callback, pattern="^menu_|^cancel_menu$")
+    CommandHandler("menu", show_dynamic_menu),
+    CallbackQueryHandler(dynamic_menu_callback, pattern="^menu\."),
 ]
