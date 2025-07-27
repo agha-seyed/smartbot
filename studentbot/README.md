@@ -40,3 +40,10 @@ docker-compose logs -f bot
 ```bash
 docker-compose down
 ```
+
+## Docker-based Testing
+To run the test suite within the Docker environment, use the following command:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.test.yml up --build --abort-on-container-exit
+```
+This command will start the services, build the bot image if it doesn't exist, and run the `pytest` test suite. The `--abort-on-container-exit` flag will stop all services as soon as the tests are finished.
