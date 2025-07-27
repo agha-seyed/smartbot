@@ -22,7 +22,19 @@ import json
 # States for ConversationHandler
 SEARCH_QUERY, SELECT_RESULT = range(2)
 
-from utils.menu_utils import load_texts
+def load_texts(lang: str) -> dict:
+    """
+    Load language-specific texts from JSON files.
+    """
+    try:
+        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Language file lang/{lang}.json not found.")
+        return {}
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in lang/{lang}.json.")
+        return {}
 
 def load_apps() -> dict:
     """

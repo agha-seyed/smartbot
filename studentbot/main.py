@@ -4,7 +4,7 @@ import asyncio
 import logging
 from telegram.ext import Application
 from telegram import BotCommand
-from .config import TELEGRAM_TOKEN, logger
+from config import TELEGRAM_TOKEN, logger
 from handlers.cmd_start import handlers as start_handlers
 from handlers.profile_handler import handlers as profile_handlers
 from handlers.file_handler import handlers as file_handlers
@@ -21,7 +21,6 @@ from handlers.admin_handler import handlers as admin_handlers
 from handlers.search_handler import handlers as search_handlers
 from handlers.menu_handler import handlers as menu_handlers
 from handlers.submenu_handler import handlers as submenu_handlers
-from handlers.guide_handler import handlers as guide_handlers
 
 async def set_bot_commands(application):
     """
@@ -49,9 +48,6 @@ async def main():
     Main function to initialize and run the bot.
     """
     logger.info("Starting StudentBot...")
-    if not TELEGRAM_TOKEN:
-        logger.error("TELEGRAM_TOKEN is not set!")
-        return
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
     # Register handlers
@@ -71,8 +67,7 @@ async def main():
         admin_handlers +
         search_handlers +
         menu_handlers +
-        submenu_handlers +
-        guide_handlers
+        submenu_handlers
     )
 
     for handler in all_handlers:

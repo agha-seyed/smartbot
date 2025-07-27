@@ -16,7 +16,6 @@ from telegram.ext import (
 from config import logger, ADMIN_CHAT_ID
 from utils.gsheets import read_sheet, update_sheet, append_to_sheet
 from utils.db import get_db, User, Admin
-from studentbot.utils.update_from_sheets import sync_scholarships_from_sheet, sync_faqs_from_sheet
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
@@ -26,7 +25,19 @@ import bcrypt
 # States for ConversationHandler
 LOGIN_USERNAME, LOGIN_PASSWORD, ADMIN_MENU, ANSWER_QUESTION, ANSWER_TEXT, BROADCAST_MESSAGE, MANAGE_SCHOLARSHIPS, ADD_SCHOLARSHIP_NAME, ADD_SCHOLARSHIP_DESC_EN, ADD_SCHOLARSHIP_DESC_FA, ADD_SCHOLARSHIP_DESC_IT, ADD_SCHOLARSHIP_LINK, ADD_SCHOLARSHIP_COUNTRY, ADD_SCHOLARSHIP_FIELD, DELETE_SCHOLARSHIP, MANAGE_USER, MANAGE_USER_ACTION = range(17)
 
-from utils.menu_utils import load_texts
+def load_texts(lang: str) -> dict:
+    """
+    Load language-specific texts from JSON files.
+    """
+    try:
+        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Language file lang/{lang}.json not found.")
+        return {}
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in lang/{lang}.json.")
+        return {}
 
 def load_scholarships() -> dict:
     """
@@ -147,7 +158,6 @@ async def start_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
             [InlineKeyboardButton(texts.get("admin_manage_scholarships", "Manage Scholarships"), callback_data="admin_manage_scholarships")],
             [InlineKeyboardButton(texts.get("admin_manage_users", "Manage Users"), callback_data="admin_manage_users")],
             [InlineKeyboardButton(texts.get("admin_logs", "View Logs"), callback_data="admin_logs")],
-            [InlineKeyboardButton(texts.get("admin_sync", "Sync from Sheets"), callback_data="admin_sync")],
             [InlineKeyboardButton(texts.get("cancel", "Cancel"), callback_data="cancel_admin")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -181,26 +191,6 @@ async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         context.user_data.pop("is_admin", None)
         context.user_data.pop("admin_username", None)
         return ConversationHandler.END
-
-    if option == "admin_sync":
-        await query.message.reply_text("Starting sync process...")
-        db: Session = next(get_db())
-
-        logger.info("Syncing scholarships...")
-        scholarship_summary = sync_scholarships_from_sheet(db)
-        logger.info(f"Scholarship sync summary: {scholarship_summary}")
-
-        logger.info("Syncing FAQs...")
-        faq_summary = sync_faqs_from_sheet(db)
-        logger.info(f"FAQ sync summary: {faq_summary}")
-
-        summary_message = f"Sync process finished.\n\nScholarships:\n{scholarship_summary}\n\nFAQs:\n{faq_summary}"
-        await query.message.reply_text(summary_message)
-
-        # Also send to admin chat for logging purposes
-        await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=summary_message)
-
-        return ADMIN_MENU
 
     if option == "admin_stats":
         try:
@@ -908,7 +898,7 @@ admin_conv_handler = ConversationHandler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, login_password)
         ],
         ADMIN_MENU: [
-            CallbackQueryHandler(admin_menu, pattern="^admin_stats|^admin_answer|^admin_broadcast|^admin_manage_scholarships|^admin_manage_users|^admin_logs|^admin_sync|^cancel_admin$")
+            CallbackQueryHandler(admin_menu, pattern="^admin_stats|^admin_answer|^admin_broadcast|^admin_manage_scholarships|^admin_manage_users|^admin_logs|^cancel_admin$")
         ],
         ANSWER_QUESTION: [
             CallbackQueryHandler(select_answer, pattern="^answer_|^cancel_admin$")

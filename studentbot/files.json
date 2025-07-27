@@ -1,4 +1,8 @@
 {
-    "pdfs": [],
-    "videos": []
+    "pdfs": [
+        "sample.pdf"
+    ],
+    "videos": [
+        "sample.mp4"
+    ]
 }

@@ -1,49 +1,54 @@
-# StudentBot
+# International Student Bot
 
-This is a comprehensive Telegram bot for students, providing various services like scholarship search, ISEE calculation, weather updates, and more.
+This is a Telegram bot designed to help international students, with a focus on Iranian students in Perugia, Italy.
 
-## Running the bot with Docker
+## Features
 
-### Prerequisites
-- Docker
-- Docker Compose
+- Multi-language support (Farsi, English, Italian)
+- User registration and profile management
+- ISEE calculator
+- Educational migration consultation form
+- Semantic search for common questions
+- Weather information for Perugia
+- File sending (PDFs and videos)
+- Gamification system
+- Interactive calendar for deadlines
+- Geolocation for important places
+- Live chat with an admin
+- Question submission form
 
-### 1. Create a `.env` file
-Create a `.env` file in the root directory of the project by copying the example file:
-```bash
-cp .env.example .env
-```
-Now, open the `.env` file and fill in the required environment variables, such as your `TELEGRAM_TOKEN` and `ADMIN_CHAT_ID`.
+## Setup
 
-### 2. Place your Google Credentials
-Place your Google Cloud credentials JSON file in the root of the project and name it `credentials.json`. This file is necessary for the bot to interact with Google Sheets.
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd studentbot
+   ```
 
-### 3. Build and Run the bot
-You can use the provided scripts to build and run the bot:
+2. **Create a virtual environment and install dependencies:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-**To build the Docker image:**
-```bash
-bash build.sh
-```
+3. **Set up environment variables:**
+   - Copy `.env.example` to `.env`.
+   - Fill in the required values in the `.env` file.
 
-**To run the bot in detached mode:**
-```bash
-bash run.sh
-```
+4. **Run the bot:**
+   ```bash
+   python main.py
+   ```
 
-**To view the logs:**
-```bash
-docker-compose logs -f bot
-```
+## Deployment
 
-**To stop the bot:**
-```bash
-docker-compose down
-```
+This bot is designed to be deployed on Render.
 
-## Docker-based Testing
-To run the test suite within the Docker environment, use the following command:
-```bash
-docker compose -f docker-compose.yml -f docker-compose.test.yml up --build --abort-on-container-exit
-```
-This command will start the services, build the bot image if it doesn't exist, and run the `pytest` test suite. The `--abort-on-container-exit` flag will stop all services as soon as the tests are finished.
+1. Create a new Web Service on Render.
+2. Connect your GitHub repository.
+3. Set the environment to Python 3.11.9.
+4. Add your environment variables from the `.env` file.
+5. Set the build command to `pip install -r requirements.txt`.
+6. Set the start command to `python main.py`.
+7. Set up the webhook as described in the project prompt.

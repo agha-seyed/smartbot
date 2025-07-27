@@ -21,7 +21,25 @@ import json
 # States for ConversationHandler
 INCOME, ASSETS, FAMILY_MEMBERS, CONFIRM = range(4)
 
-from utils.menu_utils import load_texts
+def load_texts(lang: str) -> dict:
+    """
+    Load language-specific texts from JSON files.
+
+    Args:
+        lang (str): Language code (e.g., 'en', 'fa', 'it').
+
+    Returns:
+        dict: Language texts or empty dict if file not found.
+    """
+    try:
+        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error(f"Language file lang/{lang}.json not found.")
+        return {}
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in lang/{lang}.json.")
+        return {}
 
 async def start_isee(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """

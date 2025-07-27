@@ -1,7 +1,7 @@
 # بخش: زیرساخت
 # فایل: db.py
 
-from sqlalchemy import Column, Integer, String, Float, create_engine
+from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config import DATABASE_URL
@@ -38,28 +38,6 @@ class Admin(Base):
         Check if the provided password matches the stored hash.
         """
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
-
-class Scholarship(Base):
-    __tablename__ = "scholarships"
-    id = Column(Integer, primary_key=True)
-    title = Column(String)
-    description = Column(String)
-    link = Column(String)
-
-class FAQ(Base):
-    __tablename__ = "faqs"
-    id = Column(Integer, primary_key=True)
-    question = Column(String)
-    answer = Column(String)
-
-class ConsultationRequest(Base):
-    __tablename__ = "consultation_requests"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer)
-    full_name = Column(String)
-    message = Column(String)
-    file_url = Column(String, nullable=True)
-    timestamp = Column(String)
 
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
