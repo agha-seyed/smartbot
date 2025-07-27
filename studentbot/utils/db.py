@@ -1,7 +1,7 @@
 # بخش: زیرساخت
 # فایل: db.py
 
-from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy import Column, Integer, String, Float, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config import DATABASE_URL
@@ -38,6 +38,15 @@ class Admin(Base):
         Check if the provided password matches the stored hash.
         """
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    step_id = Column(String)
+    rating = Column(String)
+    comment = Column(String, nullable=True)
+    timestamp = Column(String)
 
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
