@@ -195,23 +195,29 @@ async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return ConversationHandler.END
 
     if option == "admin_sync":
-        await query.message.edit_text("Syncing in progress, please wait...")
+        await query.message.edit_text("⏳ Syncing in progress, please wait...")
 
         db: Session = next(get_db())
 
-        logger.info("Syncing scholarships...")
-        scholarship_summary = sync_scholarships_from_sheet(db)
-        logger.info(f"Scholarship sync summary: {scholarship_summary}")
+        try:
+            logger.info("Syncing scholarships...")
+            scholarship_summary = sync_scholarships_from_sheet(db)
+            logger.info(f"Scholarship sync summary: {scholarship_summary}")
 
-        logger.info("Syncing FAQs...")
-        faq_summary = sync_faqs_from_sheet(db)
-        logger.info(f"FAQ sync summary: {faq_summary}")
+            logger.info("Syncing FAQs...")
+            faq_summary = sync_faqs_from_sheet(db)
+            logger.info(f"FAQ sync summary: {faq_summary}")
 
-        summary_message = f"Sync process finished.\n\nScholarships:\n{scholarship_summary}\n\nFAQs:\n{faq_summary}"
-        await query.message.edit_text(summary_message)
+            summary_message = f"✅ Sync process finished successfully.\n\nScholarships:\n{scholarship_summary}\n\nFAQs:\n{faq_summary}"
+            await query.message.edit_text(summary_message)
 
-        # Also send to admin chat for logging purposes
-        await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=f"Sync completed by admin {user_id}:\n{summary_message}")
+            # Also send to admin chat for logging purposes
+            await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=f"Sync completed by admin {user_id}:\n{summary_message}")
+        except Exception as e:
+            error_message = f"❌ An error occurred during sync: {e}"
+            logger.error(error_message)
+            await query.message.edit_text(error_message)
+            await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=f"Sync failed for admin {user_id}:\n{error_message}")
 
         return ADMIN_MENU
 

@@ -5,21 +5,41 @@
       "steps": [
         {
           "id": 1,
-          "title": "Arrive at the Airport",
-          "content": "Welcome to Italy! Upon arrival, follow the signs for passport control and baggage claim. If you need assistance, look for the airport information desk.",
+          "title": "Arrive at the Airport and Document Check",
+          "content": "Required documents: Valid passport, student visa (Type D), university admission letter, temporary health insurance (minimum 8 days), financial proof (minimum €7,000/year).\n\nProcess: Border officers will check your passport and visa. They may ask about your purpose of travel or place of study. You must apply for a permesso di soggiorno within 8 days.\n\nChallenges: Document discrepancies or delays.",
           "tips": {
-            "Iran": "Remember to have your visa documents ready for inspection."
+            "Iran": "Have all your documents translated and legalized before your trip."
           }
         },
         {
           "id": 2,
-          "title": "Get Your Tax Code (Codice Fiscale)",
-          "content": "The Codice Fiscale is a unique tax code that you will need for many things in Italy. You can apply for it at the local Agenzia delle Entrate office."
+          "title": "Transportation from the Airport to Perugia",
+          "content": "Options:\n- Bus (Busitalia): From Perugia Airport to Piazza Italia (€2.50 pre-purchased, €3.50 on the bus). To Assisi (€3), Foligno (€4.20-€5.20). The bus stop is outside the terminal.\n- Taxi: From Perugia Airport to the city center (€30), Bastia Umbra (€20). Website: www.perugiataxi.it.\n- Train from Rome: From Fiumicino to Roma Termini with Leonardo Express (€14, 32 min). From Termini to Perugia Centrale (€15, 2.5-3 hours). From Perugia Centrale to the center by bus (€1).\n- FlixBus: From Rome Tiburtina to Perugia (€10-€20, 2.5-3 hours). Website: www.flixbus.com.\n\nChallenges: Public transport delays, need to book tickets in advance."
         },
         {
           "id": 3,
-          "title": "Health Insurance",
-          "content": "Non-EU students must have health insurance. You can either use a private insurance from your home country or register with the Italian National Health Service (SSN)."
+          "title": "Get Your Tax Code (Codice Fiscale)",
+          "content": "Location: Agenzia delle Entrate, Via Canali, 12, 06124 Perugia, Tel: +39 075 5145711.\n\nProcess: Book an appointment at https://prenotazioneweb.agenziaentrate.gov.it, select 'Prima richiesta di attribuzione del codice fiscale', present your passport, and complete form AA4/8.\n\nChallenges: Delays in getting an appointment, form errors."
+        },
+        {
+          "id": 4,
+          "title": "Open a Bank Account (Revolut, Wise, UniCredit)",
+          "content": "Revolut: Revolut app, sign up with passport and residence address, free virtual card, physical card (€6 shipping).\n\nWise: Wise app, verify identity with passport and selfie, multi-currency account with ~0.5% fee.\n\nUniCredit: Visit a branch (Piazza della Repubblica), Documents: Codice Fiscale, passport, residence certificate, admission letter. Fee: €5-€10/year.\n\nChallenges: Address verification, appointment scheduling at local banks."
+        },
+        {
+          "id": 5,
+          "title": "Health Insurance and SSN",
+          "content": "Temporary Insurance: Welcome Association Italy (€100 for 6 months, www.waitaly.net).\n\nSSN: ASL office in Perugia, Documents: Permesso or its receipt, Codice Fiscale, residence certificate, payment of €387 (Bollettino Postale).\n\nChallenges: Multi-step process, appointment scheduling at ASL."
+        },
+        {
+          "id": 6,
+          "title": "University Enrollment in Perugia",
+          "content": "Location: Segreteria Studenti (Medicine: Via del Giochetto; Engineering: Via G. Duranti).\n\nDocuments: Passport, Codice Fiscale, admission letter, translated academic records, insurance, tuition fee receipt.\n\nProcess: Book an appointment at www.unipg.it, present documents, receive enrollment certificate.\n\nChallenges: Verification of translated documents, coordination with Questura."
+        },
+        {
+          "id": 7,
+          "title": "Housing and Dormitories",
+          "content": "Dormitory: ADISU (www.adisu.umbria.it), Cost: €200-€350/month, Documents: Codice Fiscale, admission letter.\n\nApartment: Websites: Idealista (www.idealista.it), Subito (www.subito.it), Casa.it (www.casa.it). Cost: €300-€600/month.\n\nContract: Register at Agenzia delle Entrate (€67, split between tenant and landlord).\n\nLegal Tips: 4+4 or 3+2 year contracts, written agreements with roommates, advice at Informagiovani (Piazza del Melo).\n\nChallenges: Competition for housing, negotiating with landlords."
         }
       ]
     },
@@ -28,18 +48,41 @@
       "steps": [
         {
           "id": 1,
-          "title": "ورود به فرودگاه",
-          "content": "به ایتالیا خوش آمدید! پس از ورود، علائم مربوط به کنترل پاسپورت و تحویل بار را دنبال کنید. در صورت نیاز به کمک، به میز اطلاعات فرودگاه مراجعه کنید."
+          "title": "ورود به فرودگاه و بررسی مدارک",
+          "content": "مدارک مورد نیاز: پاسپورت معتبر، ویزای دانشجویی (نوع D)، نامه پذیرش دانشگاه، بیمه درمانی موقت (حداقل ۸ روز)، مدارک مالی (حداقل ۷,۰۰۰ یورو در سال).\n\nفرآیند: مأموران مرزی پاسپورت و ویزا را بررسی می‌کنند. ممکن است درباره هدف سفر یا محل تحصیل سؤال بپرسند. ظرف ۸ روز باید برای permesso di soggiorno اقدام کنید.\n\nچالش‌ها: عدم تطابق مدارک یا تأخیر در ارائه.",
+          "tips": {
+            "Iran": "تمام مدارک خود را قبل از سفر ترجمه و قانونی کنید."
+          }
         },
         {
           "id": 2,
-          "title": "دریافت کد مالیاتی (Codice Fiscale)",
-          "content": "کد مالیاتی یک کد منحصر به فرد است که برای بسیاری از کارها در ایتالیا به آن نیاز خواهید داشت. می‌توانید از طریق دفتر محلی Agenzia delle Entrate برای آن اقدام کنید."
+          "title": "حمل‌ونقل از فرودگاه به پروجا",
+          "content": "گزینه‌ها:\n- اتوبوس (Busitalia): از فرودگاه پروجا به Piazza Italia (۲.۵ یورو پیش‌خرید، ۳.۵ یورو در اتوبوس). به آسیزی (۳ یورو)، فولیگنو (۴.۲-۵.۲ یورو). ایستگاه بیرون ترمینال است.\n- تاکسی: از فرودگاه پروجا به مرکز شهر (۳۰ یورو)، باستیا اومبرا (۲۰ یورو). وب‌سایت: www.perugiataxi.it.\n- قطار از رم: از فیومیچینو به Roma Termini با Leonardo Express (۱۴ یورو، ۳۲ دقیقه). از Termini به Perugia Centrale (۱۵ یورو، ۲.۵-۳ ساعت). از Perugia Centrale به مرکز با اتوبوس (۱ یورو).\n- فلیکس‌باس: از رم Tiburtina به پروجا (۱۰-۲۰ یورو، ۲.۵-۳ ساعت). وب‌سایت: www.flixbus.com.\n\nچالش‌ها: تأخیر حمل‌ونقل عمومی، نیاز به رزرو بلیط."
         },
         {
           "id": 3,
-          "title": "بیمه درمانی",
-          "content": "دانشجویان غیر اروپایی باید بیمه درمانی داشته باشند. می‌توانید از بیمه خصوصی کشور خود استفاده کنید یا در سرویس بهداشت ملی ایتالیا (SSN) ثبت نام کنید."
+          "title": "دریافت کد مالیاتی (Codice Fiscale)",
+          "content": "مکان: Agenzia delle Entrate، Via Canali, 12, 06124 Perugia، تلفن: +39 075 5145711.\n\nفرآیند: رزرو وقت از https://prenotazioneweb.agenziaentrate.gov.it، انتخاب 'Prima richiesta di attribuzione del codice fiscale'، ارائه پاسپورت، و تکمیل فرم AA4/8.\n\nچالش‌ها: تأخیر در وقت‌گیری، خطای فرم."
+        },
+        {
+          "id": 4,
+          "title": "افتتاح حساب بانکی (Revolut، Wise، UniCredit)",
+          "content": "Revolut: اپلیکیشن Revolut، ثبت‌نام با پاسپورت و آدرس اقامت، کارت مجازی رایگان، کارت فیزیکی (۶ یورو ارسال).\n\nWise: اپلیکیشن Wise، تأیید هویت با پاسپورت و سلفی، حساب چندارزی با کارمزد ۰.۵٪.\n\nUniCredit: مراجعه به شعبه (Piazza della Repubblica)، مدارک: کد مالیاتی، پاسپورت، گواهی اقامت، نامه پذیرش. هزینه: ۵-۱۰ یورو سالانه.\n\nچالش‌ها: تأیید آدرس، وقت‌گیری در بانک‌های محلی."
+        },
+        {
+          "id": 5,
+          "title": "بیمه درمانی و SSN",
+          "content": "بیمه موقت: Welcome Association Italy (۱۰۰ یورو برای ۶ ماه، www.waitaly.net).\n\nSSN: دفتر ASL پروجا، مدارک: permesso یا رسید آن، کد مالیاتی، گواهی اقامت، پرداخت ۳۸۷ یورو (Bollettino Postale).\n\nچالش‌ها: فرآیند چندمرحله‌ای، وقت‌گیری در ASL."
+        },
+        {
+          "id": 6,
+          "title": "ثبت‌نام در دانشگاه پروجا",
+          "content": "مکان: Segreteria Studenti (پزشکی: Via del Giochetto؛ مهندسی: Via G. Duranti).\n\nمدارک: پاسپورت، کد مالیاتی، نامه پذیرش، مدارک تحصیلی ترجمه‌شده، بیمه، رسید شهریه.\n\nفرآیند: رزرو وقت از www.unipg.it، ارائه مدارک، دریافت گواهی ثبت‌نام.\n\nچالش‌ها: تأیید مدارک ترجمه‌شده، هماهنگی با Questura."
+        },
+        {
+          "id": 7,
+          "title": "اجاره مسکن و خوابگاه",
+          "content": "خوابگاه: ADISU (www.adisu.umbria.it)، هزینه: ۲۰۰-۳۵۰ یورو/ماه، مدارک: کد مالیاتی، نامه پذیرش.\n\nآپارتمان: وب‌سایت‌ها: Idealista (www.idealista.it)، Subito (www.subito.it)، Casa.it (www.casa.it). هزینه: ۳۰۰-۶۰۰ یورو/ماه.\n\nقرارداد: ثبت در Agenzia delle Entrate (۶۷ یورو، تقسیم بین مستأجر و مالک).\n\nنکات حقوقی: قرارداد ۴+۴ یا ۳+۲ سال، توافق کتبی با هم‌خانه‌ها، مشاوره در Informagiovani (Piazza del Melo).\n\nچالش‌ها: رقابت برای مسکن، مذاکره با مالکان."
         }
       ]
     },
@@ -48,18 +91,41 @@
       "steps": [
         {
           "id": 1,
-          "title": "Arrivo in aeroporto",
-          "content": "Benvenuti in Italia! All'arrivo, seguite le indicazioni per il controllo passaporti e il ritiro bagagli. Se avete bisogno di assistenza, cercate il banco informazioni dell'aeroporto."
+          "title": "Arrivo in aeroporto e controllo documenti",
+          "content": "Documenti richiesti: Passaporto valido, visto per studenti (Tipo D), lettera di ammissione dell'università, assicurazione sanitaria temporanea (minimo 8 giorni), prova finanziaria (minimo €7.000/anno).\n\nProcesso: Gli ufficiali di frontiera controlleranno passaporto e visto. Potrebbero chiedere lo scopo del viaggio o il luogo di studio. È necessario richiedere il permesso di soggiorno entro 8 giorni.\n\nSfide: Discrepanze nei documenti o ritardi.",
+          "tips": {
+            "Iran": "Fai tradurre e legalizzare tutti i tuoi documenti prima del viaggio."
+          }
         },
         {
           "id": 2,
-          "title": "Ottenere il Codice Fiscale",
-          "content": "Il Codice Fiscale è un codice univoco necessario per molte cose in Italia. Potete richiederlo presso l'ufficio locale dell'Agenzia delle Entrate."
+          "title": "Trasporto dall'aeroporto a Perugia",
+          "content": "Opzioni:\n- Autobus (Busitalia): Dall'aeroporto di Perugia a Piazza Italia (€2,50 pre-acquistato, €3,50 sull'autobus). Per Assisi (€3), Foligno (€4,20-€5,20). La fermata è fuori dal terminal.\n- Taxi: Dall'aeroporto di Perugia al centro città (€30), Bastia Umbra (€20). Sito web: www.perugiataxi.it.\n- Treno da Roma: Da Fiumicino a Roma Termini con Leonardo Express (€14, 32 min). Da Termini a Perugia Centrale (€15, 2,5-3 ore). Da Perugia Centrale al centro in autobus (€1).\n- FlixBus: Da Roma Tiburtina a Perugia (€10-€20, 2,5-3 ore). Sito web: www.flixbus.com.\n\nSfide: Ritardi dei trasporti pubblici, necessità di prenotare i biglietti in anticipo."
         },
         {
           "id": 3,
-          "title": "Assicurazione sanitaria",
-          "content": "Gli studenti non comunitari devono avere un'assicurazione sanitaria. Potete utilizzare un'assicurazione privata del vostro paese d'origine o iscrivervi al Servizio Sanitario Nazionale (SSN)."
+          "title": "Ottenere il Codice Fiscale",
+          "content": "Luogo: Agenzia delle Entrate, Via Canali, 12, 06124 Perugia, Tel: +39 075 5145711.\n\nProcesso: Prenota un appuntamento su https://prenotazioneweb.agenziaentrate.gov.it, seleziona 'Prima richiesta di attribuzione del codice fiscale', presenta il passaporto e compila il modulo AA4/8.\n\nSfide: Ritardi nell'ottenere un appuntamento, errori nel modulo."
+        },
+        {
+          "id": 4,
+          "title": "Aprire un conto in banca (Revolut, Wise, UniCredit)",
+          "content": "Revolut: App Revolut, registrati con passaporto e indirizzo di residenza, carta virtuale gratuita, carta fisica (€6 spedizione).\n\nWise: App Wise, verifica l'identità con passaporto e selfie, conto multivaluta con una commissione di circa 0,5%.\n\nUniCredit: Recati in filiale (Piazza della Repubblica), Documenti: Codice Fiscale, passaporto, certificato di residenza, lettera di ammissione. Costo: €5-€10/anno.\n\nSfide: Verifica dell'indirizzo, fissare un appuntamento presso le banche locali."
+        },
+        {
+          "id": 5,
+          "title": "Assicurazione sanitaria e SSN",
+          "content": "Assicurazione temporanea: Welcome Association Italy (€100 per 6 mesi, www.waitaly.net).\n\nSSN: Ufficio ASL di Perugia, Documenti: Permesso o sua ricevuta, Codice Fiscale, certificato di residenza, pagamento di €387 (Bollettino Postale).\n\nSfide: Processo a più fasi, fissare un appuntamento all'ASL."
+        },
+        {
+          "id": 6,
+          "title": "Iscrizione all'Università di Perugia",
+          "content": "Luogo: Segreteria Studenti (Medicina: Via del Giochetto; Ingegneria: Via G. Duranti).\n\nDocumenti: Passaporto, Codice Fiscale, lettera di ammissione, documenti accademici tradotti, assicurazione, ricevuta tasse universitarie.\n\nProcesso: Prenota un appuntamento su www.unipg.it, presenta i documenti, ricevi il certificato di iscrizione.\n\nSfide: Verifica dei documenti tradotti, coordinamento con la Questura."
+        },
+        {
+          "id": 7,
+          "title": "Alloggio e dormitori",
+          "content": "Dormitorio: ADISU (www.adisu.umbria.it), Costo: €200-€350/mese, Documenti: Codice Fiscale, lettera di ammissione.\n\nAppartamento: Siti web: Idealista (www.idealista.it), Subito (www.subito.it), Casa.it (www.casa.it). Costo: €300-€600/mese.\n\nContratto: Registrazione presso l'Agenzia delle Entrate (€67, diviso tra inquilino e proprietario).\n\nConsigli legali: Contratti 4+4 o 3+2 anni, accordi scritti con i coinquilini, consulenza presso l'Informagiovani (Piazza del Melo).\n\nSfide: Competizione per gli alloggi, negoziazione con i proprietari."
         }
       ]
     }

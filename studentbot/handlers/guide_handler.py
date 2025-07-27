@@ -77,10 +77,15 @@ async def show_guide_step(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     message_text = f"*{title}*\n\n{content}"
 
-    if update.callback_query:
-        await update.callback_query.message.edit_text(message_text, reply_markup=reply_markup, parse_mode="MarkdownV2")
+    # Split message if it's too long
+    if len(message_text) > 4096:
+        for i in range(0, len(message_text), 4096):
+            await update.message.reply_text(message_text[i:i+4096], parse_mode="MarkdownV2")
     else:
-        await update.message.reply_text(message_text, reply_markup=reply_markup, parse_mode="MarkdownV2")
+        if update.callback_query:
+            await update.callback_query.message.edit_text(message_text, reply_markup=reply_markup, parse_mode="MarkdownV2")
+        else:
+            await update.message.reply_text(message_text, reply_markup=reply_markup, parse_mode="MarkdownV2")
 
 async def guide_navigation_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
