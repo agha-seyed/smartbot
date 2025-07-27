@@ -52,6 +52,15 @@ class FAQ(Base):
     question = Column(String)
     answer = Column(String)
 
+class ConsultationRequest(Base):
+    __tablename__ = "consultation_requests"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    full_name = Column(String)
+    message = Column(String)
+    file_url = Column(String, nullable=True)
+    timestamp = Column(String)
+
 engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
