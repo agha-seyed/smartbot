@@ -107,5 +107,13 @@
   "submenu_search_apps": "جستجوی اپلیکیشن‌ها",
   "conversation_cancelled": "عملیات لغو شد.",
   "error_message": "خطایی رخ داد. لطفاً دوباره امتحان کنید.",
-  "cancel": "لغو"
+  "cancel": "لغو",
+    "scholarships_text": "این بخش در دست ساخت است.",
+    "migration_text": "این بخش در دست ساخت است.",
+    "housing_text": "این بخش در دست ساخت است.",
+    "student_life_text": "این بخش در دست ساخت است.",
+    "universities_text": "این بخش در دست ساخت است.",
+    "language_courses_text": "این بخش در دست ساخت است.",
+    "university_news_text": "این بخش در دست ساخت است.",
+    "tools_text": "این بخش در دست ساخت است."
 }

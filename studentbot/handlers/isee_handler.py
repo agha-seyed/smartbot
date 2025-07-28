@@ -147,11 +147,38 @@ async def get_family_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data["isee_family_members"] = members
     logger.info(f"User {user_id} entered family members: {members}")
 
-    # Simple ISEE calculation (placeholder)
+    # ISEE calculation
     income = context.user_data["isee_income"]
     assets = context.user_data["isee_assets"]
-    isee = (income + assets * 0.2) / members  # Simplified formula
+
+    # ISP (Indicatore della Situazione Patrimoniale)
+    isp = assets * 0.2
+
+    # ISR (Indicatore della Situazione Reddituale)
+    isr = income
+
+    # Scale di equivalenza
+    scale = {
+        1: 1,
+        2: 1.57,
+        3: 2.04,
+        4: 2.46,
+        5: 2.85,
+    }
+    equivalence_parameter = scale.get(members, 2.85 + 0.35 * (members - 5))
+
+    # ISEE
+    isee = (isr + isp) / equivalence_parameter
     context.user_data["isee_result"] = round(isee, 2)
+
+    # Scholarship status
+    if isee <= 13000:
+        scholarship_status = texts.get("scholarship_full", "Full scholarship")
+    elif isee <= 23000:
+        scholarship_status = texts.get("scholarship_partial", "Partial scholarship")
+    else:
+        scholarship_status = texts.get("scholarship_none", "Not eligible for scholarship")
+    context.user_data["scholarship_status"] = scholarship_status
 
     # Prepare summary with profile
     profile = context.user_data["user_profile"]
@@ -165,7 +192,8 @@ async def get_family_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
         f"{texts.get('isee_income', 'Income')}: {income} EUR\n"
         f"{texts.get('isee_assets', 'Assets')}: {assets} EUR\n"
         f"{texts.get('isee_family_members', 'Family Members')}: {members}\n"
-        f"{texts.get('isee_result', 'Estimated ISEE')}: {isee} EUR"
+        f"{texts.get('isee_result', 'Estimated ISEE')}: {isee} EUR\n"
+        f"{texts.get('scholarship_status_label', 'Scholarship Status')}: {context.user_data['scholarship_status']}"
     )
     keyboard = [
         [

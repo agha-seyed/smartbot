@@ -1,6 +1,5 @@
 # بخش: قابلیت‌های اضافی
 # فایل: search_handler.py
-# فایل: handlers/search_handler.py
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -18,9 +17,16 @@ from utils.db import get_db, User, add_points
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
+from utils.ai_utils import load_knowledge_base, get_sentence_transformer_model, find_best_match
+from utils.text_extractor import extract_text_from_pdf, extract_text_from_docx
+from utils.redis_utils import cache_session, get_session
 
 # States for ConversationHandler
 SEARCH_QUERY, SELECT_RESULT = range(2)
+
+# Load knowledge base and model
+knowledge_base = load_knowledge_base("lang/knowledge_base.json")
+model = get_sentence_transformer_model()
 
 def load_texts(lang: str) -> dict:
     """
@@ -35,34 +41,6 @@ def load_texts(lang: str) -> dict:
     except json.JSONDecodeError:
         logger.error(f"Invalid JSON in lang/{lang}.json.")
         return {}
-
-def load_apps() -> dict:
-    """
-    Load apps data from apps.json.
-    """
-    try:
-        with open("apps.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error("Apps file apps.json not found.")
-        return {"categories": []}
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON in apps.json.")
-        return {"categories": []}
-
-def load_scholarships() -> dict:
-    """
-    Load scholarships data from scholarships.json.
-    """
-    try:
-        with open("scholarships.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error("Scholarships file scholarships.json not found.")
-        return {"scholarships": []}
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON in scholarships.json.")
-        return {"scholarships": []}
 
 async def start_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -103,7 +81,7 @@ async def search_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    query = update.message.text.strip().lower()
+    query = update.message.text.strip()
     logger.info(f"User {user_id} searched for: {query}")
 
     if not query or len(query) > 100:
@@ -112,39 +90,25 @@ async def search_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         )
         return SEARCH_QUERY
 
-    # Search in apps and scholarships
-    apps_data = load_apps()
-    scholarships_data = load_scholarships()
-    results = []
+    # Check cache first
+    cached_results = get_session(f"search:{query}")
+    if cached_results:
+        logger.info(f"Found cached results for query: {query}")
+        results = cached_results
+    else:
+        # Search in knowledge base
+        best_match = find_best_match(query, knowledge_base, model)
+        results = [best_match] if best_match else []
 
-    # Search apps
-    for category in apps_data["categories"]:
-        for app in category["apps"]:
-            if (query in app["name"].lower() or
-                query in app["description"][lang].lower() or
-                query in category["display_name"][lang].lower()):
-                results.append({
-                    "type": "app",
-                    "name": app["name"],
-                    "category": category["display_name"][lang],
-                    "description": app["description"][lang],
-                    "link": app["link"]
-                })
+        # Fallback to PDF/Word search
+        if not results:
+            # This is a placeholder for a more robust file search mechanism
+            pdf_text = extract_text_from_pdf("assets/pdfs/re.md") #This should be a pdf file, but for now it's a md file
+            if query.lower() in pdf_text.lower():
+                results.append({"answer": pdf_text})
 
-    # Search scholarships
-    for scholarship in scholarships_data["scholarships"]:
-        if (query in scholarship["name"].lower() or
-            query in scholarship["description"][lang].lower() or
-            query in scholarship["country"].lower() or
-            query in scholarship["field"].lower()):
-            results.append({
-                "type": "scholarship",
-                "name": scholarship["name"],
-                "description": scholarship["description"][lang],
-                "link": scholarship["link"],
-                "country": scholarship["country"],
-                "field": scholarship["field"]
-            })
+        # Cache results
+        cache_session(f"search:{query}", results)
 
     if not results:
         await update.message.reply_text(
@@ -154,7 +118,7 @@ async def search_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     context.user_data["search_results"] = results
     keyboard = [
-        [InlineKeyboardButton(f"{r['type'].capitalize()}: {r['name']}", callback_data=f"result_{i}")]
+        [InlineKeyboardButton(r.get("answer", "Result")[:50], callback_data=f"result_{i}")]
         for i, r in enumerate(results)
     ]
     keyboard.append([InlineKeyboardButton(texts.get("cancel", "Cancel"), callback_data="cancel_search")])
@@ -215,21 +179,7 @@ async def select_result(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         return SELECT_RESULT
 
     result = results[result_index]
-    if result["type"] == "app":
-        result_details = (
-            f"App: {result['name']}\n"
-            f"Category: {result['category']}\n"
-            f"Description: {result['description']}\n"
-            f"Link: {result['link']}"
-        )
-    else:
-        result_details = (
-            f"Scholarship: {result['name']}\n"
-            f"Description: {result['description']}\n"
-            f"Country: {result['country']}\n"
-            f"Field: {result['field']}\n"
-            f"Link: {result['link']}"
-        )
+    result_details = result.get("answer", "No details available.")
 
     await query.message.reply_text(
         texts.get("search_result_details", "Result Details:\n") + result_details
@@ -242,10 +192,6 @@ async def select_result(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         texts.get("search_admin_notify", "New search result selected:\n")
         + f"User ID: {user_id}\n"
         + f"Name: {profile['first_name']} {profile['family_name']}\n"
-        + f"Age: {profile['age']}\n"
-        + f"Email: {profile['email']}\n"
-        + f"Field of Study: {profile['field_of_study']}\n"
-        + f"Country: {profile['country']}\n"
         + f"Result: {result_details}\n"
         + f"Time: {timestamp}"
     )

@@ -45,6 +45,14 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     keyboard = [
+        [InlineKeyboardButton(texts.get("menu_scholarships", "Scholarships"), callback_data="menu_scholarships")],
+        [InlineKeyboardButton(texts.get("menu_migration", "Migration"), callback_data="menu_migration")],
+        [InlineKeyboardButton(texts.get("menu_housing", "Housing"), callback_data="menu_housing")],
+        [InlineKeyboardButton(texts.get("menu_student_life", "Student Life"), callback_data="menu_student_life")],
+        [InlineKeyboardButton(texts.get("menu_universities", "Universities"), callback_data="menu_universities")],
+        [InlineKeyboardButton(texts.get("menu_language_courses", "Language Courses"), callback_data="menu_language_courses")],
+        [InlineKeyboardButton(texts.get("menu_university_news", "University News"), callback_data="menu_university_news")],
+        [InlineKeyboardButton(texts.get("menu_tools", "Tools"), callback_data="menu_tools")],
         [InlineKeyboardButton(texts.get("menu_profile", "Profile"), callback_data="menu_profile")],
         [InlineKeyboardButton(texts.get("menu_search", "Search"), callback_data="menu_search")],
         [InlineKeyboardButton(texts.get("menu_apps", "Apps"), callback_data="menu_apps")],
@@ -89,6 +97,14 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
     commands = {
+        "menu_scholarships": "/scholarships",
+        "menu_migration": "/migration",
+        "menu_housing": "/housing",
+        "menu_student_life": "/student_life",
+        "menu_universities": "/universities",
+        "menu_language_courses": "/language_courses",
+        "menu_university_news": "/university_news",
+        "menu_tools": "/tools",
         "menu_profile": "/profile",
         "menu_search": "/search",
         "menu_apps": "/apps",

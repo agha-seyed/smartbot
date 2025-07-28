@@ -280,7 +280,86 @@ async def cancel_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     return ConversationHandler.END
 
-# Define ConversationHandler
+# States for delete profile conversation
+CONFIRM_DELETE = range(1)
+
+async def delete_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Start the profile deletion process.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} started profile deletion.")
+
+    keyboard = [
+        [
+            InlineKeyboardButton(texts.get("yes", "Yes"), callback_data="confirm_delete"),
+            InlineKeyboardButton(texts.get("no", "No"), callback_data="cancel_delete"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        texts.get("profile_delete_confirm", "Are you sure you want to delete your profile? This action cannot be undone."),
+        reply_markup=reply_markup
+    )
+    return CONFIRM_DELETE
+
+async def confirm_delete_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Delete the user's profile from the database and Google Sheets.
+    """
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} confirmed profile deletion.")
+
+    try:
+        # Delete from PostgreSQL
+        db: Session = next(get_db())
+        user = db.query(User).filter_by(user_id=user_id).first()
+        if user:
+            db.delete(user)
+            db.commit()
+            logger.info(f"Profile deleted from PostgreSQL for user {user_id}")
+        else:
+            logger.warning(f"User {user_id} not found in PostgreSQL for deletion.")
+
+        # Delete from Google Sheets
+        from utils.gsheets import delete_row_by_user_id
+        delete_row_by_user_id("StudentBotQuestions", user_id)
+        logger.info(f"Profile deleted from Google Sheets for user {user_id}")
+
+        await query.message.reply_text(
+            texts.get("profile_deleted", "Your profile has been deleted successfully.")
+        )
+    except Exception as e:
+        logger.error(f"Error deleting profile for user {user_id}: {e}")
+        await query.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
+        )
+
+    return ConversationHandler.END
+
+async def cancel_delete_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Cancel profile deletion.
+    """
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"User {user_id} cancelled profile deletion.")
+
+    await query.message.reply_text(
+        texts.get("conversation_cancelled", "Profile deletion cancelled.")
+    )
+    return ConversationHandler.END
+
+# Define ConversationHandlers
 profile_conv_handler = ConversationHandler(
     entry_points=[CommandHandler("profile", start_profile)],
     states={
@@ -298,5 +377,16 @@ profile_conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel_profile)],
 )
 
+delete_profile_conv_handler = ConversationHandler(
+    entry_points=[CommandHandler("delete_profile", delete_profile)],
+    states={
+        CONFIRM_DELETE: [
+            CallbackQueryHandler(confirm_delete_profile, pattern="^confirm_delete$"),
+            CallbackQueryHandler(cancel_delete_profile, pattern="^cancel_delete$"),
+        ],
+    },
+    fallbacks=[CommandHandler("cancel", cancel_delete_profile)],
+)
+
 # Define handlers for main.py
-handlers = [profile_conv_handler]
+handlers = [profile_conv_handler, delete_profile_conv_handler]

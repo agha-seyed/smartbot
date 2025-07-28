@@ -124,3 +124,31 @@ def save_question(user_id: int, question: str, timestamp: str):
     except Exception as e:
         logger.error(f"Error saving question for user {user_id}: {e}")
         raise
+
+def delete_row_by_user_id(sheet_name: str, user_id: int):
+    """
+    Delete a row from the specified Google Sheet based on the user ID.
+
+    Args:
+        sheet_name (str): Name of the Google Sheet.
+        user_id (int): The Telegram user ID to search for in the first column.
+    """
+    try:
+        client = get_gspread_client()
+        spreadsheet = client.open(sheet_name)
+        worksheet = spreadsheet.get_worksheet(0)
+        cells = worksheet.findall(str(user_id), in_column=1)
+        if cells:
+            worksheet.delete_rows(cells[0].row)
+            logger.info(f"Successfully deleted row for user {user_id} from sheet '{sheet_name}'")
+        else:
+            logger.warning(f"User ID {user_id} not found in sheet '{sheet_name}' for deletion.")
+    except gspread.exceptions.SpreadsheetNotFound:
+        logger.error(f"Google Sheet '{sheet_name}' not found.")
+        raise
+    except gspread.exceptions.APIError as e:
+        logger.error(f"Google Sheets API error: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting row for user {user_id} from sheet '{sheet_name}': {e}")
+        raise

@@ -9,6 +9,9 @@ import bcrypt
 
 Base = declarative_base()
 
+from sqlalchemy import Column, Integer, String, create_engine, Float, DateTime, ForeignKey
+from datetime import datetime
+
 class User(Base):
     __tablename__ = "users"
     user_id = Column(Integer, primary_key=True)
@@ -18,8 +21,26 @@ class User(Base):
     email = Column(String)
     field_of_study = Column(String)
     country = Column(String)
-    isee = Column(String)
+    isee = Column(Float)
     points = Column(Integer, default=0)
+
+class Consultation(Base):
+    __tablename__ = "consultations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"))
+    field = Column(String)
+    details = Column(String)
+    status = Column(String, default="pending")
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+class MigrationProgress(Base):
+    __tablename__ = "migration_progress"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"))
+    step = Column(String)
+    completed = Column(Boolean, default=False)
 
 class Admin(Base):
     __tablename__ = "admins"

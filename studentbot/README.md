@@ -4,18 +4,32 @@ This is a Telegram bot designed to help international students, with a focus on 
 
 ## Features
 
-- Multi-language support (Farsi, English, Italian)
-- User registration and profile management
-- ISEE calculator
-- Educational migration consultation form
-- Semantic search for common questions
-- Weather information for Perugia
-- File sending (PDFs and videos)
-- Gamification system
-- Interactive calendar for deadlines
-- Geolocation for important places
-- Live chat with an admin
-- Question submission form
+- **Multi-language Support:** The bot supports Farsi, English, and Italian.
+- **User Profile:** Users can create and manage their profile with information such as name, age, field of study, and country.
+- **Smart Search:** A smart search engine to answer common questions using a knowledge base and semantic search.
+- **ISEE Calculator:** An ISEE calculator to help students estimate their financial situation for scholarships.
+- **Consultation Form:** A form to request consultation on migration, scholarships, and other topics.
+- **File Upload:** A system to upload files to Google Drive.
+- **Text-to-Speech and Speech-to-Text:** Convert text to speech and vice versa using Google's and OpenAI's APIs.
+- **Gamification:** A gamification system with points, a leaderboard, migration progress tracking, and deadlines.
+- **Static Information:** Provides static information about scholarships, migration, housing, student life, universities, language courses, and university news.
+- **Weather:** Get the current weather in Perugia.
+- **Admin Panel:** A comprehensive admin panel to manage users, questions, and other aspects of the bot.
+
+## Commands
+
+- `/start`: Start the bot and select a language.
+- `/profile`: Create or view your profile.
+- `/delete_profile`: Delete your profile.
+- `/search`: Search for information.
+- `/isee`: Calculate your ISEE.
+- `/consult`: Request a consultation.
+- `/upload`: Upload a file.
+- `/tts <text>`: Convert text to speech.
+- `/progress`: View your migration progress.
+- `/deadlines`: View upcoming deadlines.
+- `/points`: View your points.
+- `/leaderboard`: View the leaderboard.
 
 ## Setup
 

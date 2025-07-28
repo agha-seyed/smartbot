@@ -1,5 +1,5 @@
 # بخش: Handlerهای اصلی
-# فایل: consult_handler.py (نسخه بهبودیافته)
+# فایل: consult_handler.py
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -14,7 +14,7 @@ from telegram.ext import (
 from config import logger, ADMIN_CHAT_ID
 from utils.redis_utils import cache_session, get_session
 from utils.gsheets import append_to_sheet
-from utils.db import get_db, User
+from utils.db import get_db, User, Consultation
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
@@ -25,12 +25,6 @@ FIELD, DETAILS, CONFIRM = range(3)
 def load_texts(lang: str) -> dict:
     """
     Load language-specific texts from JSON files.
-
-    Args:
-        lang (str): Language code (e.g., 'en', 'fa', 'it').
-
-    Returns:
-        dict: Language texts or empty dict if file not found.
     """
     try:
         with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
@@ -44,14 +38,13 @@ def load_texts(lang: str) -> dict:
 
 async def start_consultation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Start the consultation request process.
+    Start the consultation request process or show status of existing requests.
     """
     user_id = update.effective_user.id
     lang = context.user_data.get("lang", "fa")
     texts = load_texts(lang)
-    logger.info(f"User {user_id} started consultation request.")
+    logger.info(f"User {user_id} started consultation.")
 
-    # Check if user has a profile
     db: Session = next(get_db())
     user = db.query(User).filter_by(user_id=user_id).first()
     if not user:
@@ -60,19 +53,22 @@ async def start_consultation(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return ConversationHandler.END
 
+    # Check for existing consultations
+    consultations = db.query(Consultation).filter_by(user_id=user_id).all()
+    if consultations:
+        response = texts.get("consult_status_intro", "Here is the status of your consultation requests:")
+        for c in consultations:
+            response += f"\n- {c.field}: {c.status}"
+        await update.message.reply_text(response)
+
     context.user_data["user_profile"] = {
         "first_name": user.first_name,
         "family_name": user.family_name,
-        "age": user.age,
-        "email": user.email,
-        "field_of_study": user.field_of_study,
-        "country": user.country
     }
 
     keyboard = [
         [InlineKeyboardButton(texts.get("consult_migration", "Migration"), callback_data="consult_migration")],
         [InlineKeyboardButton(texts.get("consult_scholarship", "Scholarship"), callback_data="consult_scholarship")],
-        [InlineKeyboardButton(texts.get("consult_residence", "Residence"), callback_data="consult_residence")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -118,17 +114,6 @@ async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     logger.info(f"User {user_id} provided consultation details.")
 
     # Show confirmation message
-    profile = context.user_data["user_profile"]
-    consult_summary = (
-        f"{texts.get('consult_field', 'Field')}: {context.user_data['consult_field']}\n"
-        f"{texts.get('consult_details', 'Details')}: {details}\n"
-        f"{texts.get('profile_name', 'Name')}: {profile['first_name']}\n"
-        f"{texts.get('profile_family_name', 'Family Name')}: {profile['family_name']}\n"
-        f"{texts.get('profile_age', 'Age')}: {profile['age']}\n"
-        f"{texts.get('profile_email', 'Email')}: {profile['email']}\n"
-        f"{texts.get('profile_field_of_study', 'Field of Study')}: {profile['field_of_study']}\n"
-        f"{texts.get('profile_country', 'Country')}: {profile['country']}"
-    )
     keyboard = [
         [
             InlineKeyboardButton(texts.get("yes", "Yes"), callback_data="confirm_consult"),
@@ -137,14 +122,14 @@ async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        texts.get("consult_confirm", "Please confirm your consultation request:") + "\n\n" + consult_summary,
+        texts.get("consult_confirm", "Please confirm your consultation request:"),
         reply_markup=reply_markup
     )
     return CONFIRM
 
 async def confirm_consultation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
-    Save the consultation request to Google Sheets and Redis, notify admin, and end the conversation.
+    Save the consultation request, notify admin, and end the conversation.
     """
     query = update.callback_query
     await query.answer()
@@ -158,42 +143,39 @@ async def confirm_consultation(update: Update, context: ContextTypes.DEFAULT_TYP
     logger.info(f"User {user_id} confirmed consultation request.")
 
     try:
-        # Save to Google Sheets
-        data = [
-            user_id,
-            profile["first_name"] or "",
-            profile["family_name"] or "",
-            profile["age"] or "",
-            profile["email"] or "",
-            profile["field_of_study"] or "",
-            profile["country"] or "",
-            field,
-            details,
-            "",  # Empty Answer column
-            timestamp
-        ]
-        append_to_sheet("StudentBotQuestions", data)
+        # Save to PostgreSQL
+        db: Session = next(get_db())
+        consultation = Consultation(
+            user_id=user_id,
+            field=field,
+            details=details,
+        )
+        db.add(consultation)
+        db.commit()
+        consultation_id = consultation.id
+        logger.info(f"Consultation request saved to PostgreSQL with ID: {consultation_id}")
 
-        # Save session to Redis
-        session_data = {"field": field, "details": details, "timestamp": timestamp}
-        cache_session(user_id, session_data)
+        # Save to Google Sheets
+        data = [user_id, profile["first_name"], profile["family_name"], field, details, timestamp]
+        append_to_sheet("StudentBotConsultations", data)
 
         # Notify admin
         admin_message = (
-            texts.get("consult_admin_notify", "New consultation request:\n")
-            + f"User ID: {user_id}\n"
-            + f"Name: {profile['first_name']} {profile['family_name']}\n"
-            + f"Age: {profile['age']}\n"
-            + f"Email: {profile['email']}\n"
-            + f"Field of Study: {profile['field_of_study']}\n"
-            + f"Country: {profile['country']}\n"
-            + f"Field: {field}\n"
-            + f"Details: {details}\n"
-            + f"Time: {timestamp}"
+            f"New consultation request from {profile['first_name']} {profile['family_name']} (User ID: {user_id})\n"
+            f"Field: {field}\n"
+            f"Details: {details}"
         )
+        keyboard = [
+            [
+                InlineKeyboardButton("Respond", callback_data=f"consult_respond_{consultation_id}"),
+                InlineKeyboardButton("Archive", callback_data=f"consult_archive_{consultation_id}"),
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.send_message(
             chat_id=ADMIN_CHAT_ID,
-            text=admin_message
+            text=admin_message,
+            reply_markup=reply_markup,
         )
 
         await query.message.reply_text(
@@ -205,7 +187,6 @@ async def confirm_consultation(update: Update, context: ContextTypes.DEFAULT_TYP
             texts.get("error_message", "An error occurred. Please try again.")
         )
 
-    # Clear consultation data
     for key in ["consult_field", "consult_details", "user_profile"]:
         context.user_data.pop(key, None)
 
@@ -226,7 +207,6 @@ async def cancel_consultation(update: Update, context: ContextTypes.DEFAULT_TYPE
         texts.get("conversation_cancelled", "Consultation request cancelled.")
     )
 
-    # Clear consultation data
     for key in ["consult_field", "consult_details", "user_profile"]:
         context.user_data.pop(key, None)
 
