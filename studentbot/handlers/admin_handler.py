@@ -947,5 +947,46 @@ admin_conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel_admin)],
 )
 
+async def update_from_sheets(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Update answers from Google Sheets and notify users.
+    """
+    user_id = update.effective_user.id
+    lang = context.user_data.get("lang", "fa")
+    texts = load_texts(lang)
+    logger.info(f"Admin {user_id} triggered update from sheets.")
+
+    if not context.user_data.get("is_admin", False):
+        await update.message.reply_text(
+            texts.get("admin_access_denied", "Please login using /login first.")
+        )
+        return
+
+    try:
+        sheet_data = read_sheet("StudentBotQuestions")
+        updated_count = 0
+        for i, row in enumerate(sheet_data[1:]):  # Skip header
+            if row[8] != "" and (len(row) < 11 or row[10] != "sent"):
+                target_user_id = int(row[0])
+                answer_text = row[8]
+
+                await context.bot.send_message(
+                    chat_id=target_user_id,
+                    text=texts.get("admin_response", "Admin response: {answer}").format(answer=answer_text)
+                )
+
+                update_sheet("StudentBotQuestions", i + 2, 11, "sent")
+                updated_count += 1
+
+        await update.message.reply_text(
+            texts.get("admin_update_from_sheets_success", "{count} users have been notified.").format(count=updated_count)
+        )
+
+    except Exception as e:
+        logger.error(f"Error updating from sheets for admin {user_id}: {e}")
+        await update.message.reply_text(
+            texts.get("error_message", "An error occurred. Please try again.")
+        )
+
 # Define handlers for main.py
-handlers = [admin_conv_handler]
+handlers = [admin_conv_handler, CommandHandler("update_from_sheets", update_from_sheets)]
