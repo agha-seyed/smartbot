@@ -2,7 +2,7 @@
 # فایل: ai_utils.py
 
 from sentence_transformers import SentenceTransformer
-from config import logger
+from studentbot.config import logger
 import numpy as np
 import json
 

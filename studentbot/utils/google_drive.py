@@ -3,7 +3,7 @@
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-from config import logger, GOOGLE_DRIVE_UPLOAD_FOLDER_ID
+from studentbot.config import logger, GOOGLE_DRIVE_UPLOAD_FOLDER_ID
 
 def get_drive_client():
     """

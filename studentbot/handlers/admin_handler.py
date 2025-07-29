@@ -13,9 +13,9 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-from config import logger, ADMIN_CHAT_ID
-from utils.gsheets import read_sheet, update_sheet, append_to_sheet
-from utils.db import get_db, User, Admin
+from studentbot.config import logger, ADMIN_CHAT_ID
+from studentbot.utils.gsheets import read_sheet, update_sheet, append_to_sheet
+from studentbot.utils.db import get_db, User, Admin
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json

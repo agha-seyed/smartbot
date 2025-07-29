@@ -4,7 +4,7 @@
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from config import DATABASE_URL
+from studentbot.config import DATABASE_URL
 import bcrypt
 
 Base = declarative_base()

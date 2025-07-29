@@ -4,7 +4,7 @@
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from config import GOOGLE_CREDS, QUESTIONS_SHEET_NAME, logger
+from studentbot.config import GOOGLE_CREDS, QUESTIONS_SHEET_NAME, logger
 import os
 
 def get_gspread_client():

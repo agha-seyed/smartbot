@@ -1,6 +1,6 @@
 import redis
 import json
-from config import REDIS_URL, logger
+from studentbot.config import REDIS_URL, logger
 
 # Initialize Redis connection
 try:

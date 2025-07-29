@@ -11,10 +11,10 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-from config import logger, ADMIN_CHAT_ID
-from utils.redis_utils import cache_session, get_session
-from utils.gsheets import append_to_sheet
-from utils.db import get_db, User, Consultation
+from studentbot.config import logger, ADMIN_CHAT_ID
+from studentbot.utils.redis_utils import cache_session, get_session
+from studentbot.utils.gsheets import append_to_sheet
+from studentbot.utils.db import get_db, User, Consultation
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json

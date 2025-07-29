@@ -3,7 +3,7 @@
 
 from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
-from config import logger
+from studentbot.config import logger
 import json
 
 def load_texts(lang: str) -> dict:

@@ -2,8 +2,8 @@ import asyncio
 import logging
 from telegram.ext import Application
 from telegram import BotCommand
-from config import TELEGRAM_TOKEN, logger
-from handlers import (
+from studentbot.config import TELEGRAM_TOKEN, logger
+from studentbot.handlers import (
     start_handlers,
     profile_handlers,
     file_handlers,

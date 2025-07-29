@@ -3,7 +3,7 @@
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
-from config import logger
+from studentbot.config import logger
 import json
 import os
 
@@ -18,13 +18,13 @@ def load_texts(lang: str) -> dict:
         dict: Language texts or empty dict if file not found.
     """
     try:
-        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
+        with open(f"studentbot/lang/{lang}.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        logger.error(f"Language file lang/{lang}.json not found.")
+        logger.error(f"Language file studentbot/lang/{lang}.json not found.")
         return {}
     except json.JSONDecodeError:
-        logger.error(f"Invalid JSON in lang/{lang}.json.")
+        logger.error(f"Invalid JSON in studentbot/lang/{lang}.json.")
         return {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

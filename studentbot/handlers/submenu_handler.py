@@ -7,8 +7,8 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-from config import logger
-from utils.db import get_db, User
+from studentbot.config import logger
+from studentbot.utils.db import get_db, User
 from sqlalchemy.orm import Session
 
 def load_texts(lang: str) -> dict:

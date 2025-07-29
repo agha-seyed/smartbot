@@ -11,8 +11,8 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-from config import logger
-from utils.db import get_db, User
+from studentbot.config import logger
+from studentbot.utils.db import get_db, User
 from sqlalchemy.orm import Session
 import json
 import re

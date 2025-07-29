@@ -11,8 +11,8 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-from config import logger
-from utils.google_drive import upload_file_to_drive
+from studentbot.config import logger
+from studentbot.utils.google_drive import upload_file_to_drive
 import json
 import os
 

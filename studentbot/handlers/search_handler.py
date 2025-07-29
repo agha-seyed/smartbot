@@ -11,16 +11,16 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-from config import logger, ADMIN_CHAT_ID
-from utils.gsheets import append_to_sheet
-from utils.db import get_db, User
-from handlers.gamification_handler import add_points
+from studentbot.config import logger, ADMIN_CHAT_ID
+from studentbot.utils.gsheets import append_to_sheet
+from studentbot.utils.db import get_db, User
+from studentbot.handlers.gamification_handler import add_points
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
-from utils.ai_utils import load_knowledge_base, get_sentence_transformer_model, find_best_match
-from utils.text_extractor import extract_text_from_pdf, extract_text_from_docx
-from utils.redis_utils import cache_session, get_session
+from studentbot.utils.ai_utils import load_knowledge_base, get_sentence_transformer_model, find_best_match
+from studentbot.utils.text_extractor import extract_text_from_pdf, extract_text_from_docx
+from studentbot.utils.redis_utils import cache_session, get_session
 
 # States for ConversationHandler
 SEARCH_QUERY, SELECT_RESULT = range(2)

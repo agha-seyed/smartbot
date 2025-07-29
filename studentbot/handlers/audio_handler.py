@@ -9,7 +9,7 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-from config import logger
+from studentbot.config import logger
 from gtts import gTTS
 import whisper
 import os

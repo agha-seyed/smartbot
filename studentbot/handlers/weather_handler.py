@@ -11,7 +11,7 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-from config import logger, WEATHER_API_KEY
+from studentbot.config import logger, WEATHER_API_KEY
 import requests
 import json
 

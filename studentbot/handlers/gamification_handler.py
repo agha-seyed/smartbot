@@ -3,8 +3,8 @@
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
-from config import logger
-from utils.db import get_db, User, MigrationProgress
+from studentbot.config import logger
+from studentbot.utils.db import get_db, User, MigrationProgress
 from sqlalchemy.orm import Session
 import json
 from datetime import datetime
