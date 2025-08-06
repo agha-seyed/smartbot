@@ -9,7 +9,7 @@ import bcrypt
 
 Base = declarative_base()
 
-from sqlalchemy import Column, Integer, String, create_engine, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, create_engine, Float, DateTime, ForeignKey, Boolean
 from datetime import datetime
 
 class User(Base):
