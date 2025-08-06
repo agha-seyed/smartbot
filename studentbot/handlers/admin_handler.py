@@ -30,38 +30,15 @@ def load_texts(lang: str) -> dict:
     Load language-specific texts from JSON files.
     """
     try:
-        with open(f"lang/{lang}.json", "r", encoding="utf-8") as f:
+        with open(f"studentbot/lang/{lang}.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        logger.error(f"Language file lang/{lang}.json not found.")
+        logger.error(f"Language file studentbot/lang/{lang}.json not found.")
         return {}
     except json.JSONDecodeError:
-        logger.error(f"Invalid JSON in lang/{lang}.json.")
+        logger.error(f"Invalid JSON in studentbot/lang/{lang}.json.")
         return {}
 
-def load_scholarships() -> dict:
-    """
-    Load scholarships data from scholarships.json.
-    """
-    try:
-        with open("data/scholarships.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error("Scholarships file data/scholarships.json not found.")
-        return {"scholarships": []}
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON in data/scholarships.json.")
-        return {"scholarships": []}
-
-def save_scholarships(data: dict) -> None:
-    """
-    Save scholarships data to scholarships.json.
-    """
-    try:
-        with open("data/scholarships.json", "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.error(f"Error saving data/scholarships.json: {e}")
 
 async def start_login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
@@ -224,26 +201,10 @@ async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return BROADCAST_MESSAGE
 
     if option == "admin_manage_scholarships":
-        scholarships = load_scholarships()
-        keyboard = [
-            [InlineKeyboardButton(texts.get("admin_add_scholarship", "Add Scholarship"), callback_data="add_scholarship")],
-            [InlineKeyboardButton(texts.get("admin_delete_scholarship", "Delete Scholarship"), callback_data="delete_scholarship")]
-        ]
-        if scholarships["scholarships"]:
-            for scholarship in scholarships["scholarships"]:
-                keyboard.append([
-                    InlineKeyboardButton(
-                        f"{scholarship['name']} (ID: {scholarship['id']})",
-                        callback_data=f"view_scholarship_{scholarship['id']}"
-                    )
-                ])
-        keyboard.append([InlineKeyboardButton(texts.get("cancel", "Cancel"), callback_data="cancel_admin")])
-        reply_markup = InlineKeyboardMarkup(keyboard)
         await query.message.reply_text(
-            texts.get("admin_manage_scholarships_prompt", "Manage Scholarships:"),
-            reply_markup=reply_markup
+            texts.get("under_construction", "This section is under construction.")
         )
-        return MANAGE_SCHOLARSHIPS
+        return ADMIN_MENU
 
     if option == "admin_manage_users":
         try:
