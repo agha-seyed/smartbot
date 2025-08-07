@@ -219,6 +219,8 @@ async def get_country(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     )
     return CONFIRM
 
+from studentbot.services.profile_service import create_profile, delete_profile
+
 async def confirm_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """
     Save the profile to the database and end the conversation.
@@ -231,18 +233,7 @@ async def confirm_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     logger.info(f"User {user_id} confirmed profile.")
 
     try:
-        db: Session = next(get_db())
-        user = User(
-            user_id=user_id,
-            first_name=context.user_data["profile_name"],
-            family_name=context.user_data["profile_family_name"],
-            age=context.user_data["profile_age"],
-            email=context.user_data["profile_email"],
-            field_of_study=context.user_data["profile_field_of_study"],
-            country=context.user_data["profile_country"],
-        )
-        db.add(user)
-        db.commit()
+        create_profile(user_id, context.user_data)
         logger.info(f"Profile saved for user {user_id}")
         await query.message.reply_text(
             texts.get("profile_complete", "Your profile has been created successfully!")
@@ -317,21 +308,8 @@ async def confirm_delete_profile(update: Update, context: ContextTypes.DEFAULT_T
     logger.info(f"User {user_id} confirmed profile deletion.")
 
     try:
-        # Delete from PostgreSQL
-        db: Session = next(get_db())
-        user = db.query(User).filter_by(user_id=user_id).first()
-        if user:
-            db.delete(user)
-            db.commit()
-            logger.info(f"Profile deleted from PostgreSQL for user {user_id}")
-        else:
-            logger.warning(f"User {user_id} not found in PostgreSQL for deletion.")
-
-        # Delete from Google Sheets
-        from utils.gsheets import delete_row_by_user_id
-        delete_row_by_user_id("StudentBotQuestions", user_id)
-        logger.info(f"Profile deleted from Google Sheets for user {user_id}")
-
+        delete_profile(user_id)
+        logger.info(f"Profile deleted for user {user_id}")
         await query.message.reply_text(
             texts.get("profile_deleted", "Your profile has been deleted successfully.")
         )

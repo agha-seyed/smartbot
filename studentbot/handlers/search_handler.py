@@ -25,9 +25,9 @@ from studentbot.utils.redis_utils import cache_session, get_session
 # States for ConversationHandler
 SEARCH_QUERY, SELECT_RESULT = range(2)
 
-# Load knowledge base and model
-knowledge_base = load_knowledge_base("lang/knowledge_base.json")
-model = get_sentence_transformer_model()
+# Load knowledge base
+knowledge_base = load_knowledge_base("studentbot/lang/knowledge_base.json")
+model = None # Lazy load the model
 
 def load_texts(lang: str) -> dict:
     """
@@ -91,6 +91,10 @@ async def search_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         )
         return SEARCH_QUERY
 
+    global model
+    if model is None:
+        model = get_sentence_transformer_model()
+
     # Check cache first
     cached_results = get_session(f"search:{query}")
     if cached_results:
@@ -104,7 +108,7 @@ async def search_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         # Fallback to PDF/Word search
         if not results:
             # This is a placeholder for a more robust file search mechanism
-            pdf_text = extract_text_from_pdf("assets/pdfs/re.md") #This should be a pdf file, but for now it's a md file
+            pdf_text = extract_text_from_pdf("studentbot/assets/pdfs/re.md") #This should be a pdf file, but for now it's a md file
             if query.lower() in pdf_text.lower():
                 results.append({"answer": pdf_text})
 
